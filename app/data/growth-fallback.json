@@ -1,0 +1,108 @@
+{
+  "generatedAt": null,
+  "seasonStart": "2025-11-01",
+  "seasonEnd": "2026-11-01",
+  "months": [
+    {
+      "key": "2025-11",
+      "label": "Nov 2025",
+      "intentions": null,
+      "enrolments": null,
+      "bless": null
+    },
+    {
+      "key": "2025-12",
+      "label": "Dec 2025",
+      "intentions": null,
+      "enrolments": null,
+      "bless": null
+    },
+    {
+      "key": "2026-01",
+      "label": "Jan 2026",
+      "intentions": null,
+      "enrolments": null,
+      "bless": null
+    },
+    {
+      "key": "2026-02",
+      "label": "Feb 2026",
+      "intentions": null,
+      "enrolments": null,
+      "bless": null
+    },
+    {
+      "key": "2026-03",
+      "label": "Mar 2026",
+      "intentions": null,
+      "enrolments": null,
+      "bless": null
+    },
+    {
+      "key": "2026-04",
+      "label": "Apr 2026",
+      "intentions": null,
+      "enrolments": null,
+      "bless": null
+    },
+    {
+      "key": "2026-05",
+      "label": "May 2026",
+      "intentions": null,
+      "enrolments": null,
+      "bless": null
+    },
+    {
+      "key": "2026-06",
+      "label": "Jun 2026",
+      "intentions": null,
+      "enrolments": null,
+      "bless": null
+    },
+    {
+      "key": "2026-07",
+      "label": "Jul 2026",
+      "intentions": null,
+      "enrolments": null,
+      "bless": null
+    },
+    {
+      "key": "2026-08",
+      "label": "Aug 2026",
+      "intentions": null,
+      "enrolments": null,
+      "bless": null
+    },
+    {
+      "key": "2026-09",
+      "label": "Sep 2026",
+      "intentions": null,
+      "enrolments": null,
+      "bless": null
+    },
+    {
+      "key": "2026-10",
+      "label": "Oct 2026",
+      "intentions": null,
+      "enrolments": null,
+      "bless": null
+    },
+    {
+      "key": "2026-11",
+      "label": "Nov 2026",
+      "intentions": null,
+      "enrolments": null,
+      "bless": null
+    }
+  ],
+  "daily": [],
+  "weekly": [],
+  "trialOutcomes": [],
+  "blessReasons": [],
+  "retentionCalls": [],
+  "compare": {
+    "monthVsMonth": null,
+    "weekVsWeek": null,
+    "yearOverYear": null
+  }
+}

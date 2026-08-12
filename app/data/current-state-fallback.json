@@ -1,0 +1,15 @@
+{
+  "generatedAt": null,
+  "parsed": false,
+  "reason": "no sync has run yet — this is honest placeholder data, not real figures",
+  "totals": {
+    "payingPlayers": 0,
+    "enrolledPlayers": 0,
+    "revenue": 0,
+    "schools": 0,
+    "coaches": 0
+  },
+  "sections": {},
+  "perSchool": [],
+  "perCoach": []
+}
