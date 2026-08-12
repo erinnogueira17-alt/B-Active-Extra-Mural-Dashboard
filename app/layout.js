@@ -1,14 +1,14 @@
+import "./globals.css";
+
 export const metadata = {
-  title: "B-Active Extra Mural Dashboard",
-  description: "Live enrolment and coaching dashboard for B-Active Extra Murals",
+  title: "B-Active Group Ops Dashboard",
+  description: "Internal operations dashboard for B-Active Group extra-mural programs",
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body style={{ margin: 0, fontFamily: "system-ui, sans-serif" }}>
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
