@@ -14,12 +14,28 @@ function isAuthorized(request) {
   return url.searchParams.get("secret") === secret;
 }
 
-// Pulls both the 2025 archive tab and the 2026 live tab (matched by title,
-// since exact tab names aren't known ahead of time) and concatenates rows.
+// These sheets each have dozens of tabs (scratch work, backups, promo
+// trackers, "Copy of ..." duplicates) accumulated over years of manual
+// editing. Plenty of unrelated tabs happen to contain "2025"/"2026"
+// somewhere in their name (e.g. "Limited Edtion Dec to Feb 2025/2026",
+// "School Breakdown (Keep in front)2026"), so matching on the year alone
+// silently grabs the wrong tab. The real Google Forms response tabs all
+// start with the year and contain "Respons(es)" — or, in this workbook,
+// the consistent typo "reponse" — so require both, and exclude obvious
+// non-live copies.
+function findYearResponseTab(tabs, year) {
+  const yearStr = String(year);
+  const exclude = /copy of|old|test|backup|draft/i;
+  return tabs.find(
+    (t) => t.startsWith(yearStr) && /respons|reponse/i.test(t) && !exclude.test(t)
+  );
+}
+
+// Pulls both the 2025 archive tab and the 2026 live tab and concatenates rows.
 async function fetchYearCombinedRows(spreadsheetId) {
   const tabs = await listTabTitles(spreadsheetId);
-  const tab2025 = tabs.find((t) => /2025/.test(t));
-  const tab2026 = tabs.find((t) => /2026/.test(t));
+  const tab2025 = findYearResponseTab(tabs, 2025);
+  const tab2026 = findYearResponseTab(tabs, 2026);
   const chosenTabs = [tab2025, tab2026].filter(Boolean);
   const targets = chosenTabs.length > 0 ? chosenTabs : tabs.slice(0, 1);
 
