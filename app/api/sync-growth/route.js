@@ -28,7 +28,7 @@ async function fetchYearCombinedRows(spreadsheetId) {
     const values = await fetchTabValues(spreadsheetId, tab);
     rows.push(...rowsToObjects(values));
   }
-  return rows;
+  return { rows, allTabs: tabs, chosenTabs: targets };
 }
 
 export async function GET(request) {
@@ -64,7 +64,11 @@ export async function GET(request) {
       // "Retention Calls Bee" tab is optional context; ignore if absent/unreadable.
     }
 
-    const aggregated = aggregateGrowth({ intentions, enrolments, bless });
+    const aggregated = aggregateGrowth({
+      intentions: intentions.rows,
+      enrolments: enrolments.rows,
+      bless: bless.rows,
+    });
     aggregated.retentionCalls = retentionCalls;
 
     const blob = await put("growth-data.json", JSON.stringify(aggregated, null, 2), {
@@ -74,7 +78,32 @@ export async function GET(request) {
       contentType: "application/json",
     });
 
-    return NextResponse.json({ ok: true, url: blob.url, generatedAt: aggregated.generatedAt });
+    const debug = new URL(request.url).searchParams.get("debug");
+    const response = { ok: true, url: blob.url, generatedAt: aggregated.generatedAt };
+    if (debug) {
+      response.debug = {
+        intentions: {
+          allTabs: intentions.allTabs,
+          chosenTabs: intentions.chosenTabs,
+          rowCount: intentions.rows.length,
+          sampleHeaders: intentions.rows[0] ? Object.keys(intentions.rows[0]) : [],
+        },
+        enrolments: {
+          allTabs: enrolments.allTabs,
+          chosenTabs: enrolments.chosenTabs,
+          rowCount: enrolments.rows.length,
+          sampleHeaders: enrolments.rows[0] ? Object.keys(enrolments.rows[0]) : [],
+        },
+        bless: {
+          allTabs: bless.allTabs,
+          chosenTabs: bless.chosenTabs,
+          rowCount: bless.rows.length,
+          sampleHeaders: bless.rows[0] ? Object.keys(bless.rows[0]) : [],
+        },
+      };
+    }
+
+    return NextResponse.json(response);
   } catch (err) {
     return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
   }
