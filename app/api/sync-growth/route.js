@@ -1,6 +1,6 @@
 import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
-import { fetchTabValues, listTabTitles, rowsToObjects } from "../../../lib/sheetsSync.js";
+import { fetchTabValues, listTabTitles, rowsToObjects, detectDateKey } from "../../../lib/sheetsSync.js";
 import { aggregateGrowth } from "../../../lib/aggregate.js";
 
 export const dynamic = "force-dynamic";
@@ -31,7 +31,14 @@ function findYearResponseTab(tabs, year) {
   );
 }
 
-// Pulls both the 2025 archive tab and the 2026 live tab and concatenates rows.
+// Pulls both the 2025 archive tab and the 2026 live tab and concatenates
+// rows. The two tabs can have entirely different column layouts (headers
+// renamed, reordered, or dropped between years on these hand-edited
+// sheets), so the date column is resolved separately for EACH tab, while
+// its rows still share one consistent header set, and stamped onto every
+// row as `__timestamp` before merging. Once merged, downstream aggregation
+// just reads `__timestamp` directly — no more guessing across a mixed bag
+// of two different tabs' columns.
 async function fetchYearCombinedRows(spreadsheetId) {
   const tabs = await listTabTitles(spreadsheetId);
   const tab2025 = findYearResponseTab(tabs, 2025);
@@ -44,14 +51,16 @@ async function fetchYearCombinedRows(spreadsheetId) {
   for (const tab of targets) {
     const values = await fetchTabValues(spreadsheetId, tab);
     const tabRows = rowsToObjects(values);
+    const timestampKey = detectDateKey(tabRows);
+    for (const row of tabRows) {
+      row.__timestamp = timestampKey ? row[timestampKey] : undefined;
+    }
     rows.push(...tabRows);
-    const headers = tabRows[0] ? Object.keys(tabRows[0]) : [];
-    const timestampKey = headers.find((h) => h.toLowerCase().includes("timestamp")) || headers[0];
     perTab.push({
       tab,
       rowCount: tabRows.length,
       timestampKey,
-      sampleTimestamps: tabRows.slice(0, 3).map((r) => r[timestampKey]),
+      sampleTimestamps: tabRows.slice(0, 3).map((r) => r.__timestamp),
     });
   }
   return { rows, allTabs: tabs, chosenTabs: targets, perTab };
