@@ -1,6 +1,12 @@
 import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
-import { fetchTabValues, listTabTitles, rowsToObjects, detectDateKey } from "../../../lib/sheetsSync.js";
+import {
+  fetchTabValues,
+  listTabTitles,
+  rowsToObjects,
+  detectDateKey,
+  scoreDateColumns,
+} from "../../../lib/sheetsSync.js";
 import { aggregateGrowth } from "../../../lib/aggregate.js";
 
 export const dynamic = "force-dynamic";
@@ -59,8 +65,10 @@ async function fetchYearCombinedRows(spreadsheetId) {
     perTab.push({
       tab,
       rowCount: tabRows.length,
+      allHeaders: tabRows[0] ? Object.keys(tabRows[0]) : [],
       timestampKey,
-      sampleTimestamps: tabRows.slice(0, 3).map((r) => r.__timestamp),
+      sampleTimestamps: tabRows.slice(0, 5).map((r) => r.__timestamp),
+      columnScores: scoreDateColumns(tabRows).slice(0, 6),
     });
   }
   return { rows, allTabs: tabs, chosenTabs: targets, perTab };
