@@ -79,10 +79,42 @@ function findYearResponseTab(tabs, year) {
   );
 }
 
+// Every real venue value seen across these forms follows "<name> (<Day>)
+// <HH:MM>-<HH:MM>" (or a close variant — day outside parens, no dashes
+// around the time, etc), so a day name AND a time range appearing anywhere
+// in the same cell is a strong, content-based signal for "this is the
+// venue column" — needed because some tabs (e.g. Intentions 2026) have a
+// blank header there too, same as their date column did.
+const DAY_WORD = /\b(mon|tue|wed|thu|fri|sat|sun)[a-z]*s?\b/i;
+const TIME_RANGE = /\d{1,2}[:.]\d{2}\s*-\s*\d{1,2}[:.]\d{2}/;
+
+function looksLikeVenue(raw) {
+  return DAY_WORD.test(raw) && TIME_RANGE.test(raw);
+}
+
+function findVenueKeyByContent(tabRows) {
+  const headers = Object.keys(tabRows[0] || {});
+  let best = null;
+  for (const h of headers) {
+    let checked = 0;
+    let hits = 0;
+    for (const row of tabRows.slice(0, 200)) {
+      const v = row[h];
+      if (!v) continue;
+      checked++;
+      if (looksLikeVenue(v)) hits++;
+    }
+    if (checked < 5) continue;
+    const rate = hits / checked;
+    if (rate >= 0.3 && (!best || rate > best.rate)) best = { key: h, rate };
+  }
+  return best ? best.key : null;
+}
+
 function findVenueKey(tabRows) {
   if (!tabRows || tabRows.length === 0) return null;
   const headers = Object.keys(tabRows[0]);
-  return headers.find((h) => /school|venue/i.test(h)) || null;
+  return headers.find((h) => /school|venue/i.test(h)) || findVenueKeyByContent(tabRows);
 }
 
 // Diagnostic only (surfaced under ?debug=1): tallies the actual raw values
