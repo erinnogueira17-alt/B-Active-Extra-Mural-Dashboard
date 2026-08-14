@@ -40,11 +40,21 @@ async function fetchYearCombinedRows(spreadsheetId) {
   const targets = chosenTabs.length > 0 ? chosenTabs : tabs.slice(0, 1);
 
   const rows = [];
+  const perTab = [];
   for (const tab of targets) {
     const values = await fetchTabValues(spreadsheetId, tab);
-    rows.push(...rowsToObjects(values));
+    const tabRows = rowsToObjects(values);
+    rows.push(...tabRows);
+    const headers = tabRows[0] ? Object.keys(tabRows[0]) : [];
+    const timestampKey = headers.find((h) => h.toLowerCase().includes("timestamp")) || headers[0];
+    perTab.push({
+      tab,
+      rowCount: tabRows.length,
+      timestampKey,
+      sampleTimestamps: tabRows.slice(0, 3).map((r) => r[timestampKey]),
+    });
   }
-  return { rows, allTabs: tabs, chosenTabs: targets };
+  return { rows, allTabs: tabs, chosenTabs: targets, perTab };
 }
 
 export async function GET(request) {
@@ -98,24 +108,9 @@ export async function GET(request) {
     const response = { ok: true, url: blob.url, generatedAt: aggregated.generatedAt };
     if (debug) {
       response.debug = {
-        intentions: {
-          allTabs: intentions.allTabs,
-          chosenTabs: intentions.chosenTabs,
-          rowCount: intentions.rows.length,
-          sampleHeaders: intentions.rows[0] ? Object.keys(intentions.rows[0]) : [],
-        },
-        enrolments: {
-          allTabs: enrolments.allTabs,
-          chosenTabs: enrolments.chosenTabs,
-          rowCount: enrolments.rows.length,
-          sampleHeaders: enrolments.rows[0] ? Object.keys(enrolments.rows[0]) : [],
-        },
-        bless: {
-          allTabs: bless.allTabs,
-          chosenTabs: bless.chosenTabs,
-          rowCount: bless.rows.length,
-          sampleHeaders: bless.rows[0] ? Object.keys(bless.rows[0]) : [],
-        },
+        intentions: { chosenTabs: intentions.chosenTabs, perTab: intentions.perTab },
+        enrolments: { chosenTabs: enrolments.chosenTabs, perTab: enrolments.perTab },
+        bless: { chosenTabs: bless.chosenTabs, perTab: bless.perTab },
       };
     }
 
