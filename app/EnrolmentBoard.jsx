@@ -8,6 +8,50 @@ const METRICS = [
   { key: "bless", label: "B-less" },
 ];
 
+// Order and labels for the region breakdown. "unclassified" only renders
+// when it actually has data — it exists so venues that don't confidently
+// match a known school are shown honestly instead of silently folded into
+// the wrong region.
+const REGION_ORDER = ["jhb", "cpt", "football", "unclassified"];
+const REGION_LABELS = {
+  jhb: "Johannesburg extramural",
+  cpt: "Cape Town extramural",
+  football: "Football",
+  unclassified: "Unclassified",
+};
+
+function RegionBreakdown({ regionTotals }) {
+  if (!regionTotals) return null;
+  const entries = REGION_ORDER.map((key) => ({ key, ...regionTotals[key] })).filter(
+    (r) => (r.intentions || 0) + (r.enrolments || 0) + (r.bless || 0) > 0
+  );
+  if (entries.length === 0) return null;
+
+  return (
+    <section className="section">
+      <h2 className="section-title">By region</h2>
+      {entries.some((e) => e.key === "unclassified") && (
+        <p className="section-subtitle">
+          Unclassified rows are venues the sync couldn&apos;t confidently match to a known school —
+          shown separately rather than guessed into the wrong region.
+        </p>
+      )}
+      <div className="card-grid">
+        {entries.map((r) => (
+          <div className="card" key={r.key}>
+            <h3 className="section-title" style={{ marginBottom: "0.75rem" }}>
+              {REGION_LABELS[r.key] || r.key}
+            </h3>
+            <p className="kpi-sub">Intentions: {r.intentions || 0}</p>
+            <p className="kpi-sub">Enrolments: {r.enrolments || 0}</p>
+            <p className="kpi-sub">B-less: {r.bless || 0}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function CompareBlock({ title, comparison }) {
   if (!comparison) {
     return (
@@ -147,6 +191,7 @@ export default function EnrolmentBoard({ data }) {
               </div>
             </div>
           </section>
+          <RegionBreakdown regionTotals={data.regionTotals} />
           <div className="card-grid">
             <BreakdownList title="Trial outcomes" items={data.trialOutcomes || []} />
             <BreakdownList title="B-less reasons" items={data.blessReasons || []} />

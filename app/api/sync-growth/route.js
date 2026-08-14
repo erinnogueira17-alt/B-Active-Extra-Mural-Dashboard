@@ -9,6 +9,8 @@ import {
   toIsoDate,
 } from "../../../lib/sheetsSync.js";
 import { aggregateGrowth } from "../../../lib/aggregate.js";
+import { parseSchoolRoster } from "../../../lib/currentStateAggregate.js";
+import { buildSchoolRegionIndex, classifyVenue } from "../../../lib/venueRegion.js";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +32,45 @@ function isAuthorized(request) {
 // start with the year and contain "Respons(es)" — or, in this workbook,
 // the consistent typo "reponse" — so require both, and exclude obvious
 // non-live copies.
+async function resolveLiveDashboardTab(spreadsheetId) {
+  const tabs = await listTabTitles(spreadsheetId);
+  return tabs.find((t) => /dashboard|roster|live/i.test(t)) || tabs[0];
+}
+
+// Builds the school -> JHB/CPT/Football lookup from the same Live
+// Dashboard roster the Current State board already parses, so both boards
+// agree on which school is which region. Best-effort: returns an empty
+// index (everything classifies as "unclassified") if the roster can't be
+// read, rather than failing the whole sync over a region breakdown.
+async function buildRegionIndex() {
+  const sheetId = process.env.GOOGLE_SHEET_ID_LIVE_DASHBOARD;
+  if (!sheetId) return [];
+  try {
+    const tab = await resolveLiveDashboardTab(sheetId);
+    if (!tab) return [];
+    const values = await fetchTabValues(sheetId, tab);
+    const parsed = parseSchoolRoster(values);
+    if (!parsed.parsed) return [];
+    return buildSchoolRegionIndex(parsed.rows);
+  } catch {
+    return [];
+  }
+}
+
+// Tallies raw venue text that couldn't be matched to a region, for
+// ?debug=1 — surfaces exactly which real venues need a roster fix rather
+// than leaving "unclassified" as an unexplained bucket.
+function sampleUnclassifiedVenues(allRows, schoolRegionIndex) {
+  const counts = new Map();
+  for (const row of allRows) {
+    const venue = (row.__venue || "").trim();
+    if (!venue) continue;
+    if (classifyVenue(venue, schoolRegionIndex) !== "unclassified") continue;
+    counts.set(venue, (counts.get(venue) || 0) + 1);
+  }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 40);
+}
+
 function findYearResponseTab(tabs, year) {
   const yearStr = String(year);
   const exclude = /copy of|old|test|backup|draft/i;
@@ -38,16 +79,19 @@ function findYearResponseTab(tabs, year) {
   );
 }
 
+function findVenueKey(tabRows) {
+  if (!tabRows || tabRows.length === 0) return null;
+  const headers = Object.keys(tabRows[0]);
+  return headers.find((h) => /school|venue/i.test(h)) || null;
+}
+
 // Diagnostic only (surfaced under ?debug=1): tallies the actual raw values
 // of whichever column looks like the school/venue field, so a JHB/CPT/
 // Football classifier can be designed against real values instead of
 // guessed at — these forms are hand-edited same as everything else in
 // these workbooks, so the real option text needs to be seen directly.
-function sampleVenueValues(tabRows) {
-  if (!tabRows || tabRows.length === 0) return null;
-  const headers = Object.keys(tabRows[0]);
-  const key = headers.find((h) => /school|venue/i.test(h));
-  if (!key) return null;
+function sampleVenueValues(tabRows, key) {
+  if (!tabRows || tabRows.length === 0 || !key) return null;
   const counts = new Map();
   for (const row of tabRows) {
     const v = (row[key] || "").trim();
@@ -79,8 +123,10 @@ async function fetchYearCombinedRows(spreadsheetId) {
     const values = await fetchTabValues(spreadsheetId, tab);
     const tabRows = rowsToObjects(values);
     const resolved = detectDateColumn(tabRows);
+    const venueKey = findVenueKey(tabRows);
     for (const row of tabRows) {
       row.__timestamp = resolved ? toIsoDate(row[resolved.key], resolved.dayFirst) : undefined;
+      row.__venue = venueKey ? row[venueKey] : undefined;
     }
     rows.push(...tabRows);
     perTab.push({
@@ -91,7 +137,8 @@ async function fetchYearCombinedRows(spreadsheetId) {
       dayFirst: resolved ? resolved.dayFirst : null,
       sampleTimestamps: tabRows.slice(0, 5).map((r) => r.__timestamp),
       columnScores: scoreDateColumns(tabRows).slice(0, 6),
-      venueSamples: sampleVenueValues(tabRows),
+      venueKey,
+      venueSamples: sampleVenueValues(tabRows, venueKey),
     });
   }
   return { rows, allTabs: tabs, chosenTabs: targets, perTab };
@@ -112,10 +159,11 @@ export async function GET(request) {
       if (!id) throw new Error(`Missing env var for the ${name} sheet ID`);
     }
 
-    const [intentions, enrolments, bless] = await Promise.all([
+    const [intentions, enrolments, bless, schoolRegionIndex] = await Promise.all([
       fetchYearCombinedRows(sheetIds.intentions),
       fetchYearCombinedRows(sheetIds.enrolments),
       fetchYearCombinedRows(sheetIds.bless),
+      buildRegionIndex(),
     ]);
 
     let retentionCalls = [];
@@ -134,7 +182,7 @@ export async function GET(request) {
       intentions: intentions.rows,
       enrolments: enrolments.rows,
       bless: bless.rows,
-    });
+    }, schoolRegionIndex);
     aggregated.retentionCalls = retentionCalls;
 
     const blob = await put("growth-data.json", JSON.stringify(aggregated, null, 2), {
@@ -147,10 +195,16 @@ export async function GET(request) {
     const debug = new URL(request.url).searchParams.get("debug");
     const response = { ok: true, url: blob.url, generatedAt: aggregated.generatedAt };
     if (debug) {
+      const allRows = [...intentions.rows, ...enrolments.rows, ...bless.rows];
       response.debug = {
         intentions: { chosenTabs: intentions.chosenTabs, perTab: intentions.perTab },
         enrolments: { chosenTabs: enrolments.chosenTabs, perTab: enrolments.perTab },
         bless: { chosenTabs: bless.chosenTabs, perTab: bless.perTab },
+        region: {
+          schoolCount: schoolRegionIndex.length,
+          regionTotals: aggregated.regionTotals,
+          topUnclassifiedVenues: sampleUnclassifiedVenues(allRows, schoolRegionIndex),
+        },
       };
     }
 
