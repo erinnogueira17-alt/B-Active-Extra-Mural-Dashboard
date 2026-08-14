@@ -4,8 +4,9 @@ import {
   fetchTabValues,
   listTabTitles,
   rowsToObjects,
-  detectDateKey,
+  detectDateColumn,
   scoreDateColumns,
+  toIsoDate,
 } from "../../../lib/sheetsSync.js";
 import { aggregateGrowth } from "../../../lib/aggregate.js";
 
@@ -57,16 +58,17 @@ async function fetchYearCombinedRows(spreadsheetId) {
   for (const tab of targets) {
     const values = await fetchTabValues(spreadsheetId, tab);
     const tabRows = rowsToObjects(values);
-    const timestampKey = detectDateKey(tabRows);
+    const resolved = detectDateColumn(tabRows);
     for (const row of tabRows) {
-      row.__timestamp = timestampKey ? row[timestampKey] : undefined;
+      row.__timestamp = resolved ? toIsoDate(row[resolved.key], resolved.dayFirst) : undefined;
     }
     rows.push(...tabRows);
     perTab.push({
       tab,
       rowCount: tabRows.length,
       allHeaders: tabRows[0] ? Object.keys(tabRows[0]) : [],
-      timestampKey,
+      timestampKey: resolved ? resolved.key : null,
+      dayFirst: resolved ? resolved.dayFirst : null,
       sampleTimestamps: tabRows.slice(0, 5).map((r) => r.__timestamp),
       columnScores: scoreDateColumns(tabRows).slice(0, 6),
     });
