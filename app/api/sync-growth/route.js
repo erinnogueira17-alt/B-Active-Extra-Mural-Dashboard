@@ -38,6 +38,26 @@ function findYearResponseTab(tabs, year) {
   );
 }
 
+// Diagnostic only (surfaced under ?debug=1): tallies the actual raw values
+// of whichever column looks like the school/venue field, so a JHB/CPT/
+// Football classifier can be designed against real values instead of
+// guessed at — these forms are hand-edited same as everything else in
+// these workbooks, so the real option text needs to be seen directly.
+function sampleVenueValues(tabRows) {
+  if (!tabRows || tabRows.length === 0) return null;
+  const headers = Object.keys(tabRows[0]);
+  const key = headers.find((h) => /school|venue/i.test(h));
+  if (!key) return null;
+  const counts = new Map();
+  for (const row of tabRows) {
+    const v = (row[key] || "").trim();
+    if (!v) continue;
+    counts.set(v, (counts.get(v) || 0) + 1);
+  }
+  const top = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 60);
+  return { key, uniqueCount: counts.size, top };
+}
+
 // Pulls both the 2025 archive tab and the 2026 live tab and concatenates
 // rows. The two tabs can have entirely different column layouts (headers
 // renamed, reordered, or dropped between years on these hand-edited
@@ -71,6 +91,7 @@ async function fetchYearCombinedRows(spreadsheetId) {
       dayFirst: resolved ? resolved.dayFirst : null,
       sampleTimestamps: tabRows.slice(0, 5).map((r) => r.__timestamp),
       columnScores: scoreDateColumns(tabRows).slice(0, 6),
+      venueSamples: sampleVenueValues(tabRows),
     });
   }
   return { rows, allTabs: tabs, chosenTabs: targets, perTab };
