@@ -4,6 +4,7 @@ import {
   fetchTabValues,
   listTabTitles,
   rowsToObjects,
+  findHeaderKey,
   detectDateColumn,
   scoreDateColumns,
   toIsoDate,
@@ -117,6 +118,34 @@ function findVenueKey(tabRows) {
   return headers.find((h) => /school|venue/i.test(h)) || findVenueKeyByContent(tabRows);
 }
 
+// The 2025 Intentions tab's real trial-status header ("Status of Trial...")
+// literally encodes its own value set ("1 - Message 01", "2 - Message 02",
+// "3 - Not Enrolling", "4 - Enrolled"). The 2026 tab has no header
+// containing "status" at all (same blank/"Column N" pattern already hit
+// for its date and venue columns) — so this looks for a column whose
+// values are drawn from that same small, distinctive vocabulary, the same
+// content-based fallback approach used for venue/date detection.
+const STATUS_VALUE = /enrolled|not enrolling|message\s*0?[12]/i;
+
+function findStatusKeyByContent(tabRows) {
+  const headers = Object.keys(tabRows[0] || {});
+  let best = null;
+  for (const h of headers) {
+    let checked = 0;
+    let hits = 0;
+    for (const row of tabRows.slice(0, 200)) {
+      const v = row[h];
+      if (!v) continue;
+      checked++;
+      if (STATUS_VALUE.test(v)) hits++;
+    }
+    if (checked < 5) continue;
+    const rate = hits / checked;
+    if (rate >= 0.3 && (!best || rate > best.rate)) best = { key: h, rate };
+  }
+  return best ? best.key : null;
+}
+
 // Diagnostic only (surfaced under ?debug=1): tallies the actual raw values
 // of whichever column looks like the school/venue field, so a JHB/CPT/
 // Football classifier can be designed against real values instead of
@@ -137,11 +166,15 @@ function sampleVenueValues(tabRows, key) {
 // Pulls both the 2025 archive tab and the 2026 live tab and concatenates
 // rows. The two tabs can have entirely different column layouts (headers
 // renamed, reordered, or dropped between years on these hand-edited
-// sheets), so the date column is resolved separately for EACH tab, while
-// its rows still share one consistent header set, and stamped onto every
-// row as `__timestamp` before merging. Once merged, downstream aggregation
-// just reads `__timestamp` directly — no more guessing across a mixed bag
-// of two different tabs' columns.
+// sheets), so every field aggregation needs is resolved separately for
+// EACH tab, while its rows still share one consistent header set, and
+// stamped onto every row (`__timestamp`, `__venue`, `__status`, `__reason`,
+// `__package`) before merging. Once merged, downstream aggregation just
+// reads these directly — no more guessing across a mixed bag of two
+// different tabs' columns. (Resolving __status/__reason/__package here
+// instead of once on the merged set fixed a real bug: trialOutcomes was
+// silently missing all 2026 data because the "status" column name only
+// existed on the 2025 tab's rows.)
 async function fetchYearCombinedRows(spreadsheetId) {
   const tabs = await listTabTitles(spreadsheetId);
   const tab2025 = findYearResponseTab(tabs, 2025);
@@ -156,21 +189,31 @@ async function fetchYearCombinedRows(spreadsheetId) {
     const tabRows = rowsToObjects(values);
     const resolved = detectDateColumn(tabRows);
     const venueKey = findVenueKey(tabRows);
+    const headers = tabRows[0] ? Object.keys(tabRows[0]) : [];
+    const statusKey = findHeaderKey(headers, "status") || findStatusKeyByContent(tabRows);
+    const reasonKey = findHeaderKey(headers, "reason");
+    const packageKey = findHeaderKey(headers, "package");
     for (const row of tabRows) {
       row.__timestamp = resolved ? toIsoDate(row[resolved.key], resolved.dayFirst) : undefined;
       row.__venue = venueKey ? row[venueKey] : undefined;
+      row.__status = statusKey ? row[statusKey] : undefined;
+      row.__reason = reasonKey ? row[reasonKey] : undefined;
+      row.__package = packageKey ? row[packageKey] : undefined;
     }
     rows.push(...tabRows);
     perTab.push({
       tab,
       rowCount: tabRows.length,
-      allHeaders: tabRows[0] ? Object.keys(tabRows[0]) : [],
+      allHeaders: headers,
       timestampKey: resolved ? resolved.key : null,
       dayFirst: resolved ? resolved.dayFirst : null,
       sampleTimestamps: tabRows.slice(0, 5).map((r) => r.__timestamp),
       columnScores: scoreDateColumns(tabRows).slice(0, 6),
       venueKey,
       venueSamples: sampleVenueValues(tabRows, venueKey),
+      statusKey,
+      reasonKey,
+      packageKey,
     });
   }
   return { rows, allTabs: tabs, chosenTabs: targets, perTab };
