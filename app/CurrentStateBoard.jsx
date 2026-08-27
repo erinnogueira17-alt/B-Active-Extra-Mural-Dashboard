@@ -16,7 +16,114 @@ function formatCurrency(n) {
   );
 }
 
-export default function CurrentStateBoard({ data }) {
+function formatDate(dateStr) {
+  return new Date(`${dateStr}T00:00:00Z`).toLocaleDateString("en-ZA", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+// Net roster movement (Enrolments minus B-less) for the latest known month
+// and for the season to date — this is real data we already have (from the
+// same Intentions/Enrolments/B-less sync that drives the Enrolment board),
+// unlike an actual historical Current State snapshot, which we only start
+// capturing from today forward (see the History section below).
+function NetMovement({ growth }) {
+  const months = (growth?.months || []).filter(
+    (m) => m.enrolments != null || m.bless != null
+  );
+  if (months.length === 0) return null;
+
+  const monthToDate = months[months.length - 1];
+  const seasonNet = months.reduce(
+    (acc, m) => acc + (m.enrolments || 0) - (m.bless || 0),
+    0
+  );
+  const monthNet = (monthToDate.enrolments || 0) - (monthToDate.bless || 0);
+
+  return (
+    <section className="section">
+      <h2 className="section-title">Net movement</h2>
+      <p className="section-subtitle">Enrolments minus B-less, Johannesburg &amp; Cape Town extramural</p>
+      <div className="kpi-grid">
+        <div className="kpi-card">
+          <p className="kpi-label">Month to date ({monthToDate.label})</p>
+          <div className="kpi-value">
+            {monthNet > 0 ? "+" : ""}
+            {monthNet}
+          </div>
+        </div>
+        <div className="kpi-card">
+          <p className="kpi-label">Year to date</p>
+          <div className="kpi-value">
+            {seasonNet > 0 ? "+" : ""}
+            {seasonNet}
+          </div>
+          <p className="kpi-sub">
+            {growth.seasonStart} – {growth.seasonEnd}
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// Real snapshots only exist from the day this feature shipped forward — we
+// never captured what the roster looked like before now, so this honestly
+// shows however many real data points have accumulated so far rather than
+// fabricating a longer history.
+function History({ history }) {
+  if (!history || history.length === 0) {
+    return (
+      <section className="section">
+        <h2 className="section-title">History</h2>
+        <div className="empty-state">
+          No history yet — this board now saves a real snapshot on every nightly sync, so
+          "every month going back" will fill in with real data over the coming months.
+        </div>
+      </section>
+    );
+  }
+
+  const sorted = [...history].sort((a, b) => (a.date < b.date ? 1 : -1));
+
+  return (
+    <section className="section">
+      <h2 className="section-title">History</h2>
+      <p className="section-subtitle">
+        Real snapshots taken at each nightly sync — accumulates from today forward.
+      </p>
+      <div className="table-wrap card">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Paying</th>
+              <th>Non-paying</th>
+              <th>Enrolled</th>
+              <th>Revenue</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((h) => (
+              <tr key={h.date}>
+                <td>{formatDate(h.date)}</td>
+                <td>{h.totals.payingPlayers}</td>
+                <td>{h.totals.sponsoredPlayers}</td>
+                <td>{h.totals.enrolledPlayers}</td>
+                <td>{formatCurrency(h.totals.revenue)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+export default function CurrentStateBoard({ data, growth, history }) {
   if (!data.parsed) {
     return (
       <div className="section">
@@ -35,6 +142,11 @@ export default function CurrentStateBoard({ data }) {
 
   return (
     <div>
+      <section className="section department-block">
+        <h2 className="section-title">Current State</h2>
+        <p className="section-subtitle">Johannesburg &amp; Cape Town extramural roster — right now</p>
+      </section>
+
       <section className="section">
         <h2 className="section-title">Totals</h2>
         <div className="kpi-grid">
@@ -66,6 +178,9 @@ export default function CurrentStateBoard({ data }) {
           </div>
         </div>
       </section>
+
+      <NetMovement growth={growth} />
+      <History history={history} />
 
       {sectionEntries.length > 0 && (
         <section className="section">

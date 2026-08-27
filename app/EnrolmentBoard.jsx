@@ -1,12 +1,7 @@
 "use client";
 
 import { useState } from "react";
-
-const METRICS = [
-  { key: "intentions", label: "Intentions" },
-  { key: "enrolments", label: "Enrolments" },
-  { key: "bless", label: "B-less" },
-];
+import CompareBlock, { BreakdownList } from "./CompareBlock.jsx";
 
 // Order and labels for the region breakdown. Football/Soccer is
 // deliberately absent — the business only wants extramural (JHB/CPT) data
@@ -55,85 +50,6 @@ function RegionBreakdown({ regionTotals }) {
   );
 }
 
-function CompareBlock({ title, comparison }) {
-  if (!comparison) {
-    return (
-      <div className="section">
-        <h3 className="section-title">{title}</h3>
-        <div className="empty-state">Not enough data yet to compare two periods.</div>
-      </div>
-    );
-  }
-
-  const { previous, current, deltas } = comparison;
-
-  return (
-    <div className="section">
-      <h3 className="section-title">{title}</h3>
-      <p className="section-subtitle">
-        {previous.label} vs {current.label}
-      </p>
-      <div className="card">
-        {METRICS.map(({ key, label }) => {
-          const prevVal = previous[key] ?? 0;
-          const currVal = current[key] ?? 0;
-          const max = Math.max(prevVal, currVal, 1);
-          const { delta, pct } = deltas[key];
-          const deltaClass = delta > 0 ? "delta-positive" : delta < 0 ? "delta-negative" : "delta-neutral";
-          return (
-            <div className="compare-row" key={key}>
-              <div className="compare-label">{label}</div>
-              <div className="compare-bars">
-                <div className="compare-bar-track">
-                  <div
-                    className="compare-bar-fill previous"
-                    style={{ width: `${(prevVal / max) * 100}%` }}
-                  />
-                </div>
-                <div className="compare-bar-track">
-                  <div className="compare-bar-fill" style={{ width: `${(currVal / max) * 100}%` }} />
-                </div>
-              </div>
-              <div className="compare-numbers">
-                {prevVal} → {currVal}{" "}
-                <span className={deltaClass}>
-                  ({delta > 0 ? "+" : ""}
-                  {delta}
-                  {pct != null ? `, ${pct > 0 ? "+" : ""}${pct}%` : ""})
-                </span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function BreakdownList({ title, items }) {
-  return (
-    <div className="section">
-      <h3 className="section-title">{title}</h3>
-      {items.length === 0 ? (
-        <div className="empty-state">No data yet.</div>
-      ) : (
-        <div className="card">
-          {items.map((item) => (
-            <div className="compare-row" key={item.label}>
-              <div className="compare-label" style={{ width: "auto", flex: 1 }}>
-                {item.label}
-              </div>
-              <div className="compare-numbers" style={{ width: "auto" }}>
-                {item.count}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function EnrolmentBoard({ data }) {
   const months = data.months || [];
   const tabs = [
@@ -156,6 +72,9 @@ export default function EnrolmentBoard({ data }) {
   );
 
   const activeMonth = months.find((m) => m.key === tab);
+  const monthToDate = months
+    .filter((m) => m.intentions != null || m.enrolments != null || m.bless != null)
+    .slice(-1)[0];
 
   return (
     <div>
@@ -175,9 +94,31 @@ export default function EnrolmentBoard({ data }) {
       {tab === "overview" && (
         <>
           <section className="section">
-            <h2 className="section-title">Season totals</h2>
+            <h2 className="section-title">Month to date</h2>
+            <p className="section-subtitle">{monthToDate ? monthToDate.label : "No data yet"}</p>
+            {monthToDate ? (
+              <div className="kpi-grid">
+                <div className="kpi-card">
+                  <p className="kpi-label">Intentions</p>
+                  <div className="kpi-value">{monthToDate.intentions ?? "—"}</div>
+                </div>
+                <div className="kpi-card">
+                  <p className="kpi-label">Enrolments</p>
+                  <div className="kpi-value">{monthToDate.enrolments ?? "—"}</div>
+                </div>
+                <div className="kpi-card">
+                  <p className="kpi-label">B-less</p>
+                  <div className="kpi-value">{monthToDate.bless ?? "—"}</div>
+                </div>
+              </div>
+            ) : (
+              <div className="empty-state">No Enrolment data yet — sync hasn&apos;t run.</div>
+            )}
+          </section>
+          <section className="section">
+            <h2 className="section-title">Year to date</h2>
             <p className="section-subtitle">
-              {data.seasonStart} – {data.seasonEnd}
+              Season {data.seasonStart} – {data.seasonEnd}
             </p>
             <div className="kpi-grid">
               <div className="kpi-card">
