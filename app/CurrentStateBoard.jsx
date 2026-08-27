@@ -1,9 +1,12 @@
 "use client";
 
+// Football/Soccer is intentionally absent here — the business only wants
+// Johannesburg/Cape Town extramural on this board, and aggregateCurrentState
+// already excludes the roster's "soccer" section rows before this ever
+// renders, so no "soccer" entry should exist to label.
 const SECTION_LABELS = {
   jhb: "Johannesburg",
   cpt: "Cape Town",
-  soccer: "Soccer",
   unspecified: "Unspecified section",
 };
 
@@ -40,14 +43,14 @@ export default function CurrentStateBoard({ data }) {
             <div className="kpi-value">{data.totals.payingPlayers.toLocaleString()}</div>
           </div>
           <div className="kpi-card">
-            <p className="kpi-label">Sponsored players</p>
+            <p className="kpi-label">Non-paying players</p>
             <div className="kpi-value">{data.totals.sponsoredPlayers.toLocaleString()}</div>
-            <p className="kpi-sub">{sponsoredPct}% of enrolled players</p>
+            <p className="kpi-sub">{sponsoredPct}% of enrolled players (fully sponsored)</p>
           </div>
           <div className="kpi-card">
             <p className="kpi-label">Enrolled players</p>
             <div className="kpi-value">{data.totals.enrolledPlayers.toLocaleString()}</div>
-            <p className="kpi-sub">Paying + sponsored</p>
+            <p className="kpi-sub">Paying + non-paying</p>
           </div>
           <div className="kpi-card">
             <p className="kpi-label">Revenue</p>
@@ -79,7 +82,7 @@ export default function CurrentStateBoard({ data }) {
                   </h3>
                   <p className="kpi-sub">Paying players: {s.payingPlayers.toLocaleString()}</p>
                   <p className="kpi-sub">
-                    Sponsored players: {s.sponsoredPlayers.toLocaleString()} ({pct}%)
+                    Non-paying players: {s.sponsoredPlayers.toLocaleString()} ({pct}%)
                   </p>
                   <p className="kpi-sub">Enrolled players: {s.enrolledPlayers.toLocaleString()}</p>
                   <p className="kpi-sub">Revenue: {formatCurrency(s.revenue)}</p>
@@ -103,7 +106,7 @@ export default function CurrentStateBoard({ data }) {
                   <th>Coach</th>
                   <th>Schools</th>
                   <th>Paying</th>
-                  <th>Sponsored</th>
+                  <th>Non-paying</th>
                   <th>Enrolled</th>
                   <th>Revenue</th>
                 </tr>
@@ -138,7 +141,7 @@ export default function CurrentStateBoard({ data }) {
                   <th>Section</th>
                   <th>Coach</th>
                   <th>Paying</th>
-                  <th>Sponsored</th>
+                  <th>Non-paying</th>
                   <th>Enrolled</th>
                   <th>Revenue</th>
                 </tr>
