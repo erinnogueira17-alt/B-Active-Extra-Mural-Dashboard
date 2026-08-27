@@ -348,3 +348,40 @@ tbody tr:hover {
   font-weight: 600;
   font-size: 0.9rem;
 }
+
+/* Overview's department sections get extra visual weight/separation —
+   each one reads as its own big block rather than blending together. */
+.department-block {
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2rem;
+}
+
+.compare-picker-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.compare-picker-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.compare-picker-row select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  color: var(--text);
+  font-size: 0.95rem;
+  text-transform: none;
+  letter-spacing: normal;
+}

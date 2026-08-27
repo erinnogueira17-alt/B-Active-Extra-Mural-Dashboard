@@ -1,7 +1,71 @@
-import { put } from "@vercel/blob";
+import { put, list } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { fetchTabValues, listTabTitles } from "../../../lib/sheetsSync.js";
 import { parseSchoolRoster, aggregateCurrentState } from "../../../lib/currentStateAggregate.js";
+
+const HISTORY_BLOB_KEY = "current-state-history.json";
+// One entry per calendar day is plenty (the sync only runs nightly); this
+// bounds the blob's size rather than letting it grow forever.
+const MAX_HISTORY_ENTRIES = 800;
+
+function snapshotFrom(aggregated) {
+  const date = aggregated.generatedAt.slice(0, 10);
+  return {
+    date,
+    totals: { ...aggregated.totals },
+    sections: Object.fromEntries(
+      Object.entries(aggregated.sections || {}).map(([key, s]) => [
+        key,
+        {
+          payingPlayers: s.payingPlayers,
+          sponsoredPlayers: s.sponsoredPlayers,
+          enrolledPlayers: s.enrolledPlayers,
+          revenue: s.revenue,
+          schools: s.schools,
+        },
+      ])
+    ),
+  };
+}
+
+// Reads the existing history array (best-effort — an empty/missing/corrupt
+// blob just means history starts fresh from today), appends today's real
+// snapshot (replacing any existing entry for today, so re-running the sync
+// twice in one day doesn't create a duplicate point), and writes it back.
+// This is what lets "every month going back" on the Current State board
+// show real data over time instead of fabricating history that was never
+// actually captured before now.
+async function appendHistorySnapshot(aggregated) {
+  let history = [];
+  try {
+    const { blobs } = await list({ prefix: HISTORY_BLOB_KEY });
+    if (blobs.length > 0) {
+      const latest = blobs.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt))[0];
+      const res = await fetch(latest.url, { cache: "no-store" });
+      if (res.ok) {
+        const parsed = await res.json();
+        if (Array.isArray(parsed)) history = parsed;
+      }
+    }
+  } catch {
+    // Corrupt or unreadable history blob — start fresh rather than fail the sync.
+  }
+
+  const entry = snapshotFrom(aggregated);
+  const withoutToday = history.filter((h) => h && h.date !== entry.date);
+  const updated = [...withoutToday, entry]
+    .sort((a, b) => (a.date < b.date ? -1 : 1))
+    .slice(-MAX_HISTORY_ENTRIES);
+
+  await put(HISTORY_BLOB_KEY, JSON.stringify(updated, null, 2), {
+    access: "public",
+    addRandomSuffix: false,
+    allowOverwrite: true,
+    contentType: "application/json",
+  });
+
+  return updated;
+}
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +106,14 @@ export async function GET(request) {
       contentType: "application/json",
     });
 
-    return NextResponse.json({ ok: true, url: blob.url, generatedAt: aggregated.generatedAt });
+    const history = aggregated.parsed ? await appendHistorySnapshot(aggregated) : null;
+
+    return NextResponse.json({
+      ok: true,
+      url: blob.url,
+      generatedAt: aggregated.generatedAt,
+      historyEntries: history ? history.length : 0,
+    });
   } catch (err) {
     return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
   }

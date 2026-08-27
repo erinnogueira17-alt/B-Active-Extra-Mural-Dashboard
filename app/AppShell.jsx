@@ -11,7 +11,7 @@ const BOARDS = [
   { key: "current-state", label: "Current State" },
 ];
 
-export default function AppShell({ growth, currentState }) {
+export default function AppShell({ growth, currentState, currentStateHistory }) {
   const [board, setBoard] = useState("overview");
 
   const anyLive = growth.source === "live" || currentState.source === "live";
@@ -60,7 +60,13 @@ export default function AppShell({ growth, currentState }) {
         <OverviewBoard growth={growth} currentState={currentState} onNavigate={setBoard} />
       )}
       {board === "enrolment" && <EnrolmentBoard data={growth.data} />}
-      {board === "current-state" && <CurrentStateBoard data={currentState.data} />}
+      {board === "current-state" && (
+        <CurrentStateBoard
+          data={currentState.data}
+          growth={growth.data}
+          history={currentStateHistory?.data || []}
+        />
+      )}
     </div>
   );
 }
