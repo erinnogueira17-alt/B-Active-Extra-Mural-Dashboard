@@ -8,15 +8,18 @@ const METRICS = [
   { key: "bless", label: "B-less" },
 ];
 
-// Order and labels for the region breakdown. "unclassified" only renders
-// when it actually has data — it exists so venues that don't confidently
-// match a known school are shown honestly instead of silently folded into
-// the wrong region.
-const REGION_ORDER = ["jhb", "cpt", "football", "unclassified"];
+// Order and labels for the region breakdown. Football/Soccer is
+// deliberately absent — the business only wants extramural (JHB/CPT) data
+// on this dashboard, and aggregateGrowth already excludes football rows
+// from every metric before this ever renders, so there's no "football"
+// bucket left to label here. "unclassified" only renders when it
+// actually has data — it exists so venues that don't confidently match a
+// known school are shown honestly instead of silently folded into the
+// wrong region.
+const REGION_ORDER = ["jhb", "cpt", "unclassified"];
 const REGION_LABELS = {
   jhb: "Johannesburg extramural",
   cpt: "Cape Town extramural",
-  football: "Football",
   unclassified: "Unclassified",
 };
 
