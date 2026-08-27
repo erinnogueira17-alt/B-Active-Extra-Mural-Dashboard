@@ -6,13 +6,47 @@ import EnrolmentBoard from "./EnrolmentBoard.jsx";
 import CurrentStateBoard from "./CurrentStateBoard.jsx";
 
 const BOARDS = [
-  { key: "overview", label: "Overview" },
-  { key: "enrolment", label: "Enrolment" },
-  { key: "current-state", label: "Current State" },
+  {
+    key: "overview",
+    label: "Overview",
+    description: "Season snapshot and comparisons across Current State and Enrolment.",
+  },
+  {
+    key: "current-state",
+    label: "Current State",
+    description: "The roster right now — paying vs. non-paying players, revenue, schools.",
+  },
+  {
+    key: "enrolment",
+    label: "Enrolment",
+    description: "Intentions, Enrolments & B-less — month to date, year to date, any month.",
+  },
 ];
 
+// The landing view: three big clickable board tiles, nothing else — no
+// numbers here, just entry points. Clicking one is the only way in, per
+// the "I need to click into each board to see what's inside" request.
+function BoardLanding({ onNavigate }) {
+  return (
+    <div className="board-landing">
+      {BOARDS.map((b) => (
+        <button
+          key={b.key}
+          className="board-tile"
+          onClick={() => onNavigate(b.key)}
+          type="button"
+        >
+          <span className="board-tile-label">{b.label}</span>
+          <span className="board-tile-desc">{b.description}</span>
+          <span className="board-tile-arrow">Open →</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function AppShell({ growth, currentState, currentStateHistory }) {
-  const [board, setBoard] = useState("overview");
+  const [board, setBoard] = useState(null);
 
   const anyLive = growth.source === "live" || currentState.source === "live";
   const bothLive = growth.source === "live" && currentState.source === "live";
@@ -20,10 +54,10 @@ export default function AppShell({ growth, currentState, currentStateHistory }) 
   return (
     <div className="page">
       <header className="app-header">
-        <div>
+        <button className="app-title-button" onClick={() => setBoard(null)} type="button">
           <h1>B-Active Group Ops Dashboard</h1>
-          <p>Enrolment funnel and current-state roster, JHB &amp; CPT.</p>
-        </div>
+        </button>
+        <p>Enrolment funnel and current-state roster, JHB &amp; CPT.</p>
       </header>
 
       {bothLive ? (
@@ -43,18 +77,25 @@ export default function AppShell({ growth, currentState, currentStateHistory }) 
         </div>
       )}
 
-      <nav className="board-nav">
-        {BOARDS.map((b) => (
-          <button
-            key={b.key}
-            className={`board-nav-item${board === b.key ? " active" : ""}`}
-            onClick={() => setBoard(b.key)}
-            type="button"
-          >
-            {b.label}
+      {board && (
+        <nav className="board-nav">
+          <button className="board-nav-item" onClick={() => setBoard(null)} type="button">
+            ← Boards
           </button>
-        ))}
-      </nav>
+          {BOARDS.map((b) => (
+            <button
+              key={b.key}
+              className={`board-nav-item${board === b.key ? " active" : ""}`}
+              onClick={() => setBoard(b.key)}
+              type="button"
+            >
+              {b.label}
+            </button>
+          ))}
+        </nav>
+      )}
+
+      {!board && <BoardLanding onNavigate={setBoard} />}
 
       {board === "overview" && (
         <OverviewBoard growth={growth} currentState={currentState} onNavigate={setBoard} />

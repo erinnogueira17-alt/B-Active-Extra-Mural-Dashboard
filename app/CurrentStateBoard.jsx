@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 // Football/Soccer is intentionally absent here — the business only wants
 // Johannesburg/Cape Town extramural on this board, and aggregateCurrentState
 // already excludes the roster's "soccer" section rows before this ever
@@ -87,7 +89,14 @@ function History({ history }) {
     );
   }
 
+  return <HistoryTable history={history} />;
+}
+
+function HistoryTable({ history }) {
+  const [expanded, setExpanded] = useState(false);
   const sorted = [...history].sort((a, b) => (a.date < b.date ? 1 : -1));
+  const RECENT = 8;
+  const visible = expanded ? sorted : sorted.slice(0, RECENT);
 
   return (
     <section className="section">
@@ -107,7 +116,7 @@ function History({ history }) {
             </tr>
           </thead>
           <tbody>
-            {sorted.map((h) => (
+            {visible.map((h) => (
               <tr key={h.date}>
                 <td>{formatDate(h.date)}</td>
                 <td>{h.totals.payingPlayers}</td>
@@ -118,6 +127,71 @@ function History({ history }) {
             ))}
           </tbody>
         </table>
+      </div>
+      {sorted.length > RECENT && (
+        <button className="back-link" onClick={() => setExpanded((v) => !v)} type="button">
+          {expanded ? "Show fewer" : `Show all ${sorted.length}`}
+        </button>
+      )}
+    </section>
+  );
+}
+
+// A searchable list of names only — no numbers lined up in a table.
+// Clicking a name is the only way to see its numbers, which then replace
+// the list rather than sitting alongside it, matching how the top-level
+// boards themselves work (click in to see detail, click back to browse).
+function NamePicker({ title, items, getLabel, renderDetail, searchPlaceholder }) {
+  const [query, setQuery] = useState("");
+  const [selected, setSelected] = useState(null);
+
+  if (items.length === 0) {
+    return (
+      <section className="section">
+        <h2 className="section-title">{title}</h2>
+        <div className="empty-state">No data yet.</div>
+      </section>
+    );
+  }
+
+  if (selected) {
+    return (
+      <section className="section">
+        <button className="back-link" onClick={() => setSelected(null)} type="button">
+          ← Back to {title}
+        </button>
+        <h3 className="section-title">{getLabel(selected)}</h3>
+        {renderDetail(selected)}
+      </section>
+    );
+  }
+
+  const filtered = query
+    ? items.filter((item) => getLabel(item).toLowerCase().includes(query.toLowerCase()))
+    : items;
+
+  return (
+    <section className="section">
+      <h2 className="section-title">{title}</h2>
+      <input
+        className="name-search"
+        type="text"
+        placeholder={searchPlaceholder}
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+      />
+      <div className="name-pill-list">
+        {filtered.map((item) => (
+          <button
+            key={getLabel(item)}
+            className="name-pill"
+            onClick={() => setSelected(item)}
+            type="button"
+          >
+            {getLabel(item)}
+          </button>
+        ))}
+        {filtered.length === 0 && <p className="kpi-sub">No matches.</p>}
       </div>
     </section>
   );
@@ -209,75 +283,73 @@ export default function CurrentStateBoard({ data, growth, history }) {
         </section>
       )}
 
-      <section className="section">
-        <h2 className="section-title">By coach</h2>
-        {data.perCoach.length === 0 ? (
-          <div className="empty-state">No per-coach data yet.</div>
-        ) : (
-          <div className="table-wrap card">
-            <table>
-              <thead>
-                <tr>
-                  <th>Coach</th>
-                  <th>Schools</th>
-                  <th>Paying</th>
-                  <th>Non-paying</th>
-                  <th>Enrolled</th>
-                  <th>Revenue</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.perCoach.map((c) => (
-                  <tr key={c.coach}>
-                    <td>{c.coach}</td>
-                    <td>{c.schools}</td>
-                    <td>{c.payingPlayers}</td>
-                    <td>{c.sponsoredPlayers}</td>
-                    <td>{c.enrolledPlayers}</td>
-                    <td>{formatCurrency(c.revenue)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <NamePicker
+        title="By coach"
+        items={data.perCoach}
+        getLabel={(c) => c.coach}
+        searchPlaceholder="Search coaches…"
+        renderDetail={(c) => (
+          <div className="kpi-grid">
+            <div className="kpi-card">
+              <p className="kpi-label">Schools</p>
+              <div className="kpi-value">{c.schools}</div>
+            </div>
+            <div className="kpi-card">
+              <p className="kpi-label">Paying players</p>
+              <div className="kpi-value">{c.payingPlayers.toLocaleString()}</div>
+            </div>
+            <div className="kpi-card">
+              <p className="kpi-label">Non-paying players</p>
+              <div className="kpi-value">{c.sponsoredPlayers.toLocaleString()}</div>
+            </div>
+            <div className="kpi-card">
+              <p className="kpi-label">Enrolled players</p>
+              <div className="kpi-value">{c.enrolledPlayers.toLocaleString()}</div>
+            </div>
+            <div className="kpi-card">
+              <p className="kpi-label">Revenue</p>
+              <div className="kpi-value">{formatCurrency(c.revenue)}</div>
+            </div>
           </div>
         )}
-      </section>
+      />
 
-      <section className="section">
-        <h2 className="section-title">By school</h2>
-        {data.perSchool.length === 0 ? (
-          <div className="empty-state">No per-school data yet.</div>
-        ) : (
-          <div className="table-wrap card">
-            <table>
-              <thead>
-                <tr>
-                  <th>School</th>
-                  <th>Section</th>
-                  <th>Coach</th>
-                  <th>Paying</th>
-                  <th>Non-paying</th>
-                  <th>Enrolled</th>
-                  <th>Revenue</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.perSchool.map((s) => (
-                  <tr key={s.school}>
-                    <td>{s.school}</td>
-                    <td>{SECTION_LABELS[s.section] || s.section || "—"}</td>
-                    <td>{s.coach || "—"}</td>
-                    <td>{s.paying}</td>
-                    <td>{s.sponsored || 0}</td>
-                    <td>{s.enrolled}</td>
-                    <td>{formatCurrency(s.revenue)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <NamePicker
+        title="By school"
+        items={data.perSchool}
+        getLabel={(s) => s.school}
+        searchPlaceholder="Search schools…"
+        renderDetail={(s) => (
+          <div className="kpi-grid">
+            <div className="kpi-card">
+              <p className="kpi-label">Section</p>
+              <div className="kpi-value" style={{ fontSize: "1.2rem" }}>
+                {SECTION_LABELS[s.section] || s.section || "—"}
+              </div>
+            </div>
+            <div className="kpi-card">
+              <p className="kpi-label">Coach</p>
+              <div className="kpi-value" style={{ fontSize: "1.2rem" }}>{s.coach || "—"}</div>
+            </div>
+            <div className="kpi-card">
+              <p className="kpi-label">Paying players</p>
+              <div className="kpi-value">{s.paying.toLocaleString()}</div>
+            </div>
+            <div className="kpi-card">
+              <p className="kpi-label">Non-paying players</p>
+              <div className="kpi-value">{(s.sponsored || 0).toLocaleString()}</div>
+            </div>
+            <div className="kpi-card">
+              <p className="kpi-label">Enrolled players</p>
+              <div className="kpi-value">{s.enrolled.toLocaleString()}</div>
+            </div>
+            <div className="kpi-card">
+              <p className="kpi-label">Revenue</p>
+              <div className="kpi-value">{formatCurrency(s.revenue)}</div>
+            </div>
           </div>
         )}
-      </section>
+      />
     </div>
   );
 }

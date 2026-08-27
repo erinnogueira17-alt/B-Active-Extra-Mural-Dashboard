@@ -50,6 +50,48 @@ function RegionBreakdown({ regionTotals }) {
   );
 }
 
+// Daily/weekly breakdowns can run to hundreds of rows — show only the most
+// recent ones by default, with a click to reveal the rest, instead of
+// always rendering the full list.
+function PeriodTable({ rows, periodLabel }) {
+  const [expanded, setExpanded] = useState(false);
+  const RECENT = 10;
+  const mostRecentFirst = [...rows].reverse();
+  const visible = expanded ? mostRecentFirst : mostRecentFirst.slice(0, RECENT);
+
+  return (
+    <>
+      <div className="table-wrap card">
+        <table>
+          <thead>
+            <tr>
+              <th>{periodLabel}</th>
+              <th>Intentions</th>
+              <th>Enrolments</th>
+              <th>B-less</th>
+            </tr>
+          </thead>
+          <tbody>
+            {visible.map((row) => (
+              <tr key={row.key}>
+                <td>{row.label}</td>
+                <td>{row.intentions}</td>
+                <td>{row.enrolments}</td>
+                <td>{row.bless}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {rows.length > RECENT && (
+        <button className="back-link" onClick={() => setExpanded((v) => !v)} type="button">
+          {expanded ? "Show fewer" : `Show all ${rows.length}`}
+        </button>
+      )}
+    </>
+  );
+}
+
 export default function EnrolmentBoard({ data }) {
   const months = data.months || [];
   const tabs = [
@@ -152,28 +194,7 @@ export default function EnrolmentBoard({ data }) {
               nightly sync, and only appears once a sync has run successfully.
             </div>
           ) : (
-            <div className="table-wrap card">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Intentions</th>
-                    <th>Enrolments</th>
-                    <th>B-less</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.daily.map((row) => (
-                    <tr key={row.key}>
-                      <td>{row.label}</td>
-                      <td>{row.intentions}</td>
-                      <td>{row.enrolments}</td>
-                      <td>{row.bless}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <PeriodTable rows={data.daily} periodLabel="Date" />
           )}
         </section>
       )}
@@ -187,28 +208,7 @@ export default function EnrolmentBoard({ data }) {
               run successfully.
             </div>
           ) : (
-            <div className="table-wrap card">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Week</th>
-                    <th>Intentions</th>
-                    <th>Enrolments</th>
-                    <th>B-less</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.weekly.map((row) => (
-                    <tr key={row.key}>
-                      <td>{row.label}</td>
-                      <td>{row.intentions}</td>
-                      <td>{row.enrolments}</td>
-                      <td>{row.bless}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <PeriodTable rows={data.weekly} periodLabel="Week" />
           )}
         </section>
       )}
