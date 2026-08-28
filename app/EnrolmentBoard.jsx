@@ -178,10 +178,7 @@ export default function EnrolmentBoard({ data }) {
             </div>
           </section>
           <RegionBreakdown regionTotals={data.regionTotals} />
-          <div className="card-grid">
-            <BreakdownList title="Trial outcomes" items={data.trialOutcomes || []} />
-            <BreakdownList title="B-less reasons" items={data.blessReasons || []} />
-          </div>
+          <BreakdownList title="Trial outcomes" items={data.trialOutcomes || []} />
         </>
       )}
 
