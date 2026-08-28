@@ -97,9 +97,7 @@ export default function AppShell({ growth, currentState, currentStateHistory }) 
 
       {!board && <BoardLanding onNavigate={setBoard} />}
 
-      {board === "overview" && (
-        <OverviewBoard growth={growth} currentState={currentState} onNavigate={setBoard} />
-      )}
+      {board === "overview" && <OverviewBoard growth={growth} currentState={currentState} />}
       {board === "enrolment" && <EnrolmentBoard data={growth.data} />}
       {board === "current-state" && (
         <CurrentStateBoard
