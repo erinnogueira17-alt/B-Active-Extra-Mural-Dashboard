@@ -1,27 +1,27 @@
-/* B-Active brand theme: the masthead is a genuinely black band carrying
-   the logo, brand red is the one accent color throughout (buttons,
-   active states, links), and the logo's gold ring is a decorative
-   accent only — its contrast against white text is too low (~1.9:1) to
-   ever carry body text or numbers. The rest of the page stays on light
-   surfaces (unchanged --bg/--text roles) so every existing component
-   that relies on plain color inheritance keeps working — only the
-   self-contained masthead below opts into on-dark text explicitly. */
+/* B-Active brand theme: black throughout — page background, card
+   surfaces, everything — with white/off-white for text and brand red as
+   the one accent color (buttons, active states, links). The logo's gold
+   ring is a decorative accent only (borders, rules) — its contrast
+   against white text is too low (~1.9:1) to ever carry body text or
+   numbers. Every component already used --surface/--text/--text-muted
+   semantically (fill vs. text-on-that-fill), so making all three of
+   those tokens dark-appropriate at once is enough to re-theme the whole
+   app — no per-component light/dark special-casing needed. */
 :root {
-  --bg: #f7f4ee;
-  --surface: #ffffff;
-  --surface-muted: #f2ede0;
-  --border: #e6e1d3;
-  --text: #17171a;
-  --text-muted: #6b655c;
+  color-scheme: dark;
+  --bg: #0a0a0b;
+  --surface: #19191b;
+  --surface-muted: #222224;
+  --border: #38383b;
+  --text: #f3f1ec;
+  --text-muted: #a9a299;
   --accent: #e83030;
-  --accent-soft: #fbe4e1;
+  --accent-soft: #3a1416;
   --gold: #d2ae5e;
-  --on-dark: #ffffff;
-  --on-dark-muted: #cfc9bc;
-  --positive: #1a7f37;
-  --positive-soft: #e6f4ea;
-  --negative: #c53030;
-  --negative-soft: #fbe9e9;
+  --positive: #4bc267;
+  --positive-soft: #123821;
+  --negative: #f0666e;
+  --negative-soft: #3a1a1c;
   --radius: 14px;
   --gutter: clamp(1.5rem, 4vw, 3.5rem);
   --section-gap: 2.75rem;
@@ -55,16 +55,14 @@ a {
   padding: var(--gutter);
 }
 
-/* A genuinely black masthead card carrying the logo, with a red-then-gold
-   double underline. Self-contained: every text color inside is set
-   explicitly here rather than inherited, so it stays correct regardless
-   of the light theme the rest of the page uses. */
+/* The masthead is a shade darker than the page itself (near-pure black)
+   so it still reads as a distinct band carrying the logo, with a
+   red-then-gold double underline. */
 .app-header {
   display: flex;
   align-items: center;
   gap: 1.25rem;
-  background: #0b0b0c;
-  color: var(--on-dark);
+  background: #000000;
   margin: 0 0 var(--section-gap);
   padding: 1.5rem 1.75rem;
   border-radius: var(--radius);
@@ -81,12 +79,12 @@ a {
 .app-header h1 {
   font-size: clamp(1.5rem, 2.4vw, 2rem);
   margin: 0 0 0.35rem;
-  color: var(--on-dark);
+  color: var(--text);
 }
 
 .app-header p {
   margin: 0;
-  color: var(--on-dark-muted);
+  color: var(--text-muted);
 }
 
 .app-title-button {
