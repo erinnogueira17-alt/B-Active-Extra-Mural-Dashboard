@@ -12,7 +12,7 @@
   --bg: #0a0a0b;
   --surface: #19191b;
   --surface-muted: #222224;
-  --border: #38383b;
+  --border: #e83030;
   --text: #f3f1ec;
   --text-muted: #a9a299;
   --accent: #e83030;
@@ -519,4 +519,20 @@ tbody tr:hover {
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
+}
+
+/* Landing page only: each label word gets its own thin red border, like a
+   little badge, rather than sitting as plain text. */
+.landing-page .kpi-label {
+  display: inline-block;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem;
+}
+
+.landing-page .board-tile-label {
+  display: inline-block;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 0.15rem 0.6rem;
 }

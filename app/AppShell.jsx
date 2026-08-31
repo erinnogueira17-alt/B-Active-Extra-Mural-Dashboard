@@ -102,7 +102,7 @@ export default function AppShell({ growth, currentState, currentStateHistory }) 
       )}
 
       {!board && (
-        <>
+        <div className="landing-page">
           <section className="section">
             <h2 className="section-title">Basic information</h2>
             <LandingSummary growth={growth} currentState={currentState} />
@@ -111,7 +111,7 @@ export default function AppShell({ growth, currentState, currentStateHistory }) 
             <h2 className="section-title">Go deeper</h2>
             <BoardTiles onNavigate={setBoard} />
           </section>
-        </>
+        </div>
       )}
 
       {board === "overview" && <OverviewBoard growth={growth} currentState={currentState} />}
