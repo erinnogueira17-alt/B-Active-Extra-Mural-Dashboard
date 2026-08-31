@@ -4,6 +4,7 @@ import { useState } from "react";
 import OverviewBoard from "./OverviewBoard.jsx";
 import EnrolmentBoard from "./EnrolmentBoard.jsx";
 import CurrentStateBoard from "./CurrentStateBoard.jsx";
+import LandingSummary from "./LandingSummary.jsx";
 
 const BOARDS = [
   {
@@ -23,10 +24,11 @@ const BOARDS = [
   },
 ];
 
-// The landing view: three big clickable board tiles, nothing else — no
-// numbers here, just entry points. Clicking one is the only way in, per
-// the "I need to click into each board to see what's inside" request.
-function BoardLanding({ onNavigate }) {
+// Three big clickable board tiles below the landing summary — the entry
+// point into deeper detail. The summary itself gives the basic numbers
+// with no clicking required; these tiles are for going further: a full
+// topic, then a subtopic within it, then deeper still.
+function BoardTiles({ onNavigate }) {
   return (
     <div className="board-landing">
       {BOARDS.map((b) => (
@@ -95,7 +97,18 @@ export default function AppShell({ growth, currentState, currentStateHistory }) 
         </nav>
       )}
 
-      {!board && <BoardLanding onNavigate={setBoard} />}
+      {!board && (
+        <>
+          <section className="section">
+            <h2 className="section-title">Basic information</h2>
+            <LandingSummary growth={growth} currentState={currentState} />
+          </section>
+          <section className="section">
+            <h2 className="section-title">Go deeper</h2>
+            <BoardTiles onNavigate={setBoard} />
+          </section>
+        </>
+      )}
 
       {board === "overview" && <OverviewBoard growth={growth} currentState={currentState} />}
       {board === "enrolment" && <EnrolmentBoard data={growth.data} />}
