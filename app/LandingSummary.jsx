@@ -66,13 +66,7 @@ export default function LandingSummary({ growth, currentState }) {
 
   return (
     <div className="landing-summary">
-      <div className="card-grid">
-        <MetricRow title="Enrolments" metricKey="enrolments" day={day} month={month} year={year} />
-        <MetricRow title="Intentions" metricKey="intentions" day={day} month={month} year={year} />
-        <MetricRow title="B-less" metricKey="bless" day={day} month={month} year={year} />
-      </div>
-
-      <div className="card" style={{ marginTop: "1.25rem" }}>
+      <div className="card">
         <h3 className="section-title" style={{ marginBottom: "0.75rem" }}>
           Current roster
         </h3>
@@ -98,6 +92,12 @@ export default function LandingSummary({ growth, currentState }) {
             </div>
           </div>
         )}
+      </div>
+
+      <div className="card-grid" style={{ marginTop: "1.25rem" }}>
+        <MetricRow title="Enrolments" metricKey="enrolments" day={day} month={month} year={year} />
+        <MetricRow title="Intentions" metricKey="intentions" day={day} month={month} year={year} />
+        <MetricRow title="B-less" metricKey="bless" day={day} month={month} year={year} />
       </div>
     </div>
   );

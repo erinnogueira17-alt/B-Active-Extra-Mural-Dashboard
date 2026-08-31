@@ -8,14 +8,14 @@ import LandingSummary from "./LandingSummary.jsx";
 
 const BOARDS = [
   {
-    key: "overview",
-    label: "Overview",
-    description: "Season snapshot and comparisons across Current State and Enrolment.",
-  },
-  {
     key: "current-state",
     label: "Current State",
     description: "The roster right now — paying vs. non-paying players, revenue, schools.",
+  },
+  {
+    key: "overview",
+    label: "Overview",
+    description: "Season snapshot and comparisons across Current State and Enrolment.",
   },
   {
     key: "enrolment",
