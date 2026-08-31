@@ -4,15 +4,51 @@ import { useState } from "react";
 import OverviewBoard from "./OverviewBoard.jsx";
 import EnrolmentBoard from "./EnrolmentBoard.jsx";
 import CurrentStateBoard from "./CurrentStateBoard.jsx";
+import LandingSummary from "./LandingSummary.jsx";
 
 const BOARDS = [
-  { key: "overview", label: "Overview" },
-  { key: "enrolment", label: "Enrolment" },
-  { key: "current-state", label: "Current State" },
+  {
+    key: "overview",
+    label: "Overview",
+    description: "Season snapshot and comparisons across Current State and Enrolment.",
+  },
+  {
+    key: "current-state",
+    label: "Current State",
+    description: "The roster right now — paying vs. non-paying players, revenue, schools.",
+  },
+  {
+    key: "enrolment",
+    label: "Enrolment",
+    description: "Intentions, Enrolments & B-less — month to date, year to date, any month.",
+  },
 ];
 
+// Three big clickable board tiles below the landing summary — the entry
+// point into deeper detail. The summary itself gives the basic numbers
+// with no clicking required; these tiles are for going further: a full
+// topic, then a subtopic within it, then deeper still.
+function BoardTiles({ onNavigate }) {
+  return (
+    <div className="board-landing">
+      {BOARDS.map((b) => (
+        <button
+          key={b.key}
+          className="board-tile"
+          onClick={() => onNavigate(b.key)}
+          type="button"
+        >
+          <span className="board-tile-label">{b.label}</span>
+          <span className="board-tile-desc">{b.description}</span>
+          <span className="board-tile-arrow">Open →</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function AppShell({ growth, currentState, currentStateHistory }) {
-  const [board, setBoard] = useState("overview");
+  const [board, setBoard] = useState(null);
 
   const anyLive = growth.source === "live" || currentState.source === "live";
   const bothLive = growth.source === "live" && currentState.source === "live";
@@ -20,10 +56,10 @@ export default function AppShell({ growth, currentState, currentStateHistory }) 
   return (
     <div className="page">
       <header className="app-header">
-        <div>
+        <button className="app-title-button" onClick={() => setBoard(null)} type="button">
           <h1>B-Active Group Ops Dashboard</h1>
-          <p>Enrolment funnel and current-state roster, JHB &amp; CPT.</p>
-        </div>
+        </button>
+        <p>Enrolment funnel and current-state roster, JHB &amp; CPT.</p>
       </header>
 
       {bothLive ? (
@@ -43,22 +79,38 @@ export default function AppShell({ growth, currentState, currentStateHistory }) 
         </div>
       )}
 
-      <nav className="board-nav">
-        {BOARDS.map((b) => (
-          <button
-            key={b.key}
-            className={`board-nav-item${board === b.key ? " active" : ""}`}
-            onClick={() => setBoard(b.key)}
-            type="button"
-          >
-            {b.label}
+      {board && (
+        <nav className="board-nav">
+          <button className="board-nav-item" onClick={() => setBoard(null)} type="button">
+            ← Boards
           </button>
-        ))}
-      </nav>
-
-      {board === "overview" && (
-        <OverviewBoard growth={growth} currentState={currentState} onNavigate={setBoard} />
+          {BOARDS.map((b) => (
+            <button
+              key={b.key}
+              className={`board-nav-item${board === b.key ? " active" : ""}`}
+              onClick={() => setBoard(b.key)}
+              type="button"
+            >
+              {b.label}
+            </button>
+          ))}
+        </nav>
       )}
+
+      {!board && (
+        <>
+          <section className="section">
+            <h2 className="section-title">Basic information</h2>
+            <LandingSummary growth={growth} currentState={currentState} />
+          </section>
+          <section className="section">
+            <h2 className="section-title">Go deeper</h2>
+            <BoardTiles onNavigate={setBoard} />
+          </section>
+        </>
+      )}
+
+      {board === "overview" && <OverviewBoard growth={growth} currentState={currentState} />}
       {board === "enrolment" && <EnrolmentBoard data={growth.data} />}
       {board === "current-state" && (
         <CurrentStateBoard

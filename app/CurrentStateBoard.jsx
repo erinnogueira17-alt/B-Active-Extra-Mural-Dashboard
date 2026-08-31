@@ -1,5 +1,8 @@
 "use client";
 
+import { useState } from "react";
+import TopicBoard from "./TopicBoard.jsx";
+
 // Football/Soccer is intentionally absent here — the business only wants
 // Johannesburg/Cape Town extramural on this board, and aggregateCurrentState
 // already excludes the roster's "soccer" section rows before this ever
@@ -29,12 +32,12 @@ function formatDate(dateStr) {
 // and for the season to date — this is real data we already have (from the
 // same Intentions/Enrolments/B-less sync that drives the Enrolment board),
 // unlike an actual historical Current State snapshot, which we only start
-// capturing from today forward (see the History section below).
+// capturing from today forward (see the History topic below).
 function NetMovement({ growth }) {
   const months = (growth?.months || []).filter(
     (m) => m.enrolments != null || m.bless != null
   );
-  if (months.length === 0) return null;
+  if (months.length === 0) return <div className="empty-state">No data yet.</div>;
 
   const monthToDate = months[months.length - 1];
   const seasonNet = months.reduce(
@@ -44,8 +47,7 @@ function NetMovement({ growth }) {
   const monthNet = (monthToDate.enrolments || 0) - (monthToDate.bless || 0);
 
   return (
-    <section className="section">
-      <h2 className="section-title">Net movement</h2>
+    <div>
       <p className="section-subtitle">Enrolments minus B-less, Johannesburg &amp; Cape Town extramural</p>
       <div className="kpi-grid">
         <div className="kpi-card">
@@ -66,7 +68,7 @@ function NetMovement({ growth }) {
           </p>
         </div>
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -77,21 +79,24 @@ function NetMovement({ growth }) {
 function History({ history }) {
   if (!history || history.length === 0) {
     return (
-      <section className="section">
-        <h2 className="section-title">History</h2>
-        <div className="empty-state">
-          No history yet — this board now saves a real snapshot on every nightly sync, so
-          "every month going back" will fill in with real data over the coming months.
-        </div>
-      </section>
+      <div className="empty-state">
+        No history yet — this board now saves a real snapshot on every nightly sync, so
+        "every month going back" will fill in with real data over the coming months.
+      </div>
     );
   }
 
+  return <HistoryTable history={history} />;
+}
+
+function HistoryTable({ history }) {
+  const [expanded, setExpanded] = useState(false);
   const sorted = [...history].sort((a, b) => (a.date < b.date ? 1 : -1));
+  const RECENT = 8;
+  const visible = expanded ? sorted : sorted.slice(0, RECENT);
 
   return (
-    <section className="section">
-      <h2 className="section-title">History</h2>
+    <div>
       <p className="section-subtitle">
         Real snapshots taken at each nightly sync — accumulates from today forward.
       </p>
@@ -107,7 +112,7 @@ function History({ history }) {
             </tr>
           </thead>
           <tbody>
-            {sorted.map((h) => (
+            {visible.map((h) => (
               <tr key={h.date}>
                 <td>{formatDate(h.date)}</td>
                 <td>{h.totals.payingPlayers}</td>
@@ -119,7 +124,66 @@ function History({ history }) {
           </tbody>
         </table>
       </div>
-    </section>
+      {sorted.length > RECENT && (
+        <button className="back-link" onClick={() => setExpanded((v) => !v)} type="button">
+          {expanded ? "Show fewer" : `Show all ${sorted.length}`}
+        </button>
+      )}
+    </div>
+  );
+}
+
+// A searchable list of names only — no numbers lined up in a table.
+// Clicking a name is the only way to see its numbers, which then replace
+// the list rather than sitting alongside it, matching how boards and
+// topics themselves work (click in to see detail, click back to browse).
+function NamePicker({ backLabel, items, getLabel, renderDetail, searchPlaceholder }) {
+  const [query, setQuery] = useState("");
+  const [selected, setSelected] = useState(null);
+
+  if (items.length === 0) {
+    return <div className="empty-state">No data yet.</div>;
+  }
+
+  if (selected) {
+    return (
+      <div>
+        <button className="back-link" onClick={() => setSelected(null)} type="button">
+          ← Back to {backLabel}
+        </button>
+        <h3 className="section-title">{getLabel(selected)}</h3>
+        {renderDetail(selected)}
+      </div>
+    );
+  }
+
+  const filtered = query
+    ? items.filter((item) => getLabel(item).toLowerCase().includes(query.toLowerCase()))
+    : items;
+
+  return (
+    <div>
+      <input
+        className="name-search"
+        type="text"
+        placeholder={searchPlaceholder}
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+      />
+      <div className="name-pill-list">
+        {filtered.map((item) => (
+          <button
+            key={getLabel(item)}
+            className="name-pill"
+            onClick={() => setSelected(item)}
+            type="button"
+          >
+            {getLabel(item)}
+          </button>
+        ))}
+        {filtered.length === 0 && <p className="kpi-sub">No matches.</p>}
+      </div>
+    </div>
   );
 }
 
@@ -140,15 +204,12 @@ export default function CurrentStateBoard({ data, growth, history }) {
     ? Math.round((data.totals.sponsoredPlayers / data.totals.enrolledPlayers) * 1000) / 10
     : 0;
 
-  return (
-    <div>
-      <section className="section department-block">
-        <h2 className="section-title">Current State</h2>
-        <p className="section-subtitle">Johannesburg &amp; Cape Town extramural roster — right now</p>
-      </section>
-
-      <section className="section">
-        <h2 className="section-title">Totals</h2>
+  const topics = [
+    {
+      key: "totals",
+      label: "Totals",
+      description: "Paying, non-paying, revenue, schools, coaches — right now",
+      render: () => (
         <div className="kpi-grid">
           <div className="kpi-card">
             <p className="kpi-label">Paying players</p>
@@ -177,14 +238,28 @@ export default function CurrentStateBoard({ data, growth, history }) {
             <div className="kpi-value">{data.totals.coaches.toLocaleString()}</div>
           </div>
         </div>
-      </section>
-
-      <NetMovement growth={growth} />
-      <History history={history} />
-
-      {sectionEntries.length > 0 && (
-        <section className="section">
-          <h2 className="section-title">By section</h2>
+      ),
+    },
+    {
+      key: "net-movement",
+      label: "Net movement",
+      description: "Enrolments minus B-less, month and year to date",
+      render: () => <NetMovement growth={growth} />,
+    },
+    {
+      key: "history",
+      label: "History",
+      description: "Real snapshots, one per nightly sync",
+      render: () => <History history={history} />,
+    },
+    {
+      key: "by-section",
+      label: "By section",
+      description: "Johannesburg vs. Cape Town",
+      render: () =>
+        sectionEntries.length === 0 ? (
+          <div className="empty-state">No data yet.</div>
+        ) : (
           <div className="card-grid">
             {sectionEntries.map(([key, s]) => {
               const pct = s.enrolledPlayers
@@ -206,78 +281,89 @@ export default function CurrentStateBoard({ data, growth, history }) {
               );
             })}
           </div>
-        </section>
-      )}
+        ),
+    },
+    {
+      key: "by-coach",
+      label: "By coach",
+      description: "Schools coached, revenue, players",
+      render: () => (
+        <NamePicker
+          backLabel="coaches"
+          items={data.perCoach}
+          getLabel={(c) => c.coach}
+          searchPlaceholder="Search coaches…"
+          renderDetail={(c) => (
+            <div className="kpi-grid">
+              <div className="kpi-card">
+                <p className="kpi-label">Schools</p>
+                <div className="kpi-value">{c.schools}</div>
+              </div>
+              <div className="kpi-card">
+                <p className="kpi-label">Paying players</p>
+                <div className="kpi-value">{c.payingPlayers.toLocaleString()}</div>
+              </div>
+              <div className="kpi-card">
+                <p className="kpi-label">Non-paying players</p>
+                <div className="kpi-value">{c.sponsoredPlayers.toLocaleString()}</div>
+              </div>
+              <div className="kpi-card">
+                <p className="kpi-label">Enrolled players</p>
+                <div className="kpi-value">{c.enrolledPlayers.toLocaleString()}</div>
+              </div>
+              <div className="kpi-card">
+                <p className="kpi-label">Revenue</p>
+                <div className="kpi-value">{formatCurrency(c.revenue)}</div>
+              </div>
+            </div>
+          )}
+        />
+      ),
+    },
+    {
+      key: "by-school",
+      label: "By school",
+      description: "Search and click a school for its numbers",
+      render: () => (
+        <NamePicker
+          backLabel="schools"
+          items={data.perSchool}
+          getLabel={(s) => s.school}
+          searchPlaceholder="Search schools…"
+          renderDetail={(s) => (
+            <div className="kpi-grid">
+              <div className="kpi-card">
+                <p className="kpi-label">Section</p>
+                <div className="kpi-value" style={{ fontSize: "1.2rem" }}>
+                  {SECTION_LABELS[s.section] || s.section || "—"}
+                </div>
+              </div>
+              <div className="kpi-card">
+                <p className="kpi-label">Coach</p>
+                <div className="kpi-value" style={{ fontSize: "1.2rem" }}>{s.coach || "—"}</div>
+              </div>
+              <div className="kpi-card">
+                <p className="kpi-label">Paying players</p>
+                <div className="kpi-value">{s.paying.toLocaleString()}</div>
+              </div>
+              <div className="kpi-card">
+                <p className="kpi-label">Non-paying players</p>
+                <div className="kpi-value">{(s.sponsored || 0).toLocaleString()}</div>
+              </div>
+              <div className="kpi-card">
+                <p className="kpi-label">Enrolled players</p>
+                <div className="kpi-value">{s.enrolled.toLocaleString()}</div>
+              </div>
+              <div className="kpi-card">
+                <p className="kpi-label">Revenue</p>
+                <div className="kpi-value">{formatCurrency(s.revenue)}</div>
+              </div>
+            </div>
+          )}
+        />
+      ),
+    },
+  ];
 
-      <section className="section">
-        <h2 className="section-title">By coach</h2>
-        {data.perCoach.length === 0 ? (
-          <div className="empty-state">No per-coach data yet.</div>
-        ) : (
-          <div className="table-wrap card">
-            <table>
-              <thead>
-                <tr>
-                  <th>Coach</th>
-                  <th>Schools</th>
-                  <th>Paying</th>
-                  <th>Non-paying</th>
-                  <th>Enrolled</th>
-                  <th>Revenue</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.perCoach.map((c) => (
-                  <tr key={c.coach}>
-                    <td>{c.coach}</td>
-                    <td>{c.schools}</td>
-                    <td>{c.payingPlayers}</td>
-                    <td>{c.sponsoredPlayers}</td>
-                    <td>{c.enrolledPlayers}</td>
-                    <td>{formatCurrency(c.revenue)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-
-      <section className="section">
-        <h2 className="section-title">By school</h2>
-        {data.perSchool.length === 0 ? (
-          <div className="empty-state">No per-school data yet.</div>
-        ) : (
-          <div className="table-wrap card">
-            <table>
-              <thead>
-                <tr>
-                  <th>School</th>
-                  <th>Section</th>
-                  <th>Coach</th>
-                  <th>Paying</th>
-                  <th>Non-paying</th>
-                  <th>Enrolled</th>
-                  <th>Revenue</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.perSchool.map((s) => (
-                  <tr key={s.school}>
-                    <td>{s.school}</td>
-                    <td>{SECTION_LABELS[s.section] || s.section || "—"}</td>
-                    <td>{s.coach || "—"}</td>
-                    <td>{s.paying}</td>
-                    <td>{s.sponsored || 0}</td>
-                    <td>{s.enrolled}</td>
-                    <td>{formatCurrency(s.revenue)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-    </div>
-  );
+  return <TopicBoard topics={topics} />;
 }

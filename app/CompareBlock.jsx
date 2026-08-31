@@ -1,7 +1,8 @@
 "use client";
 
-// Shared by EnrolmentBoard (fixed latest-vs-previous comparisons) and
-// OverviewBoard (arbitrary any-two-months comparisons) so both render
+import { useState } from "react";
+
+// Shared by EnrolmentBoard and OverviewBoard so both render comparisons
 // identically instead of maintaining two copies of the same markup.
 
 const METRICS = [
@@ -47,6 +48,101 @@ export function BreakdownList({ title, items }) {
             </div>
           ))}
         </div>
+      )}
+    </div>
+  );
+}
+
+const GRANULARITIES = [
+  { key: "daily", label: "Day", dataKey: "daily" },
+  { key: "weekly", label: "Week", dataKey: "weekly" },
+  { key: "monthly", label: "Month", dataKey: "months" },
+  { key: "yearly", label: "Year", dataKey: null },
+];
+
+function periodsFor(growth, granularityKey) {
+  const g = GRANULARITIES.find((x) => x.key === granularityKey);
+  if (!g || !g.dataKey) return [];
+  return (growth[g.dataKey] || []).filter(
+    (p) => p.intentions != null || p.enrolments != null || p.bless != null
+  );
+}
+
+// Lets a person choose the granularity (day/week/month/year) and then any
+// two periods at that granularity to compare — not just the latest pair.
+// Year is included for completeness but always shows the honest
+// "not yet available" note, since only one season of history exists.
+export function PeriodCompare({ growth }) {
+  const [granularity, setGranularity] = useState("monthly");
+  const periods = periodsFor(growth, granularity);
+  const [aKey, setAKey] = useState(periods[0]?.key || "");
+  const [bKey, setBKey] = useState(periods[periods.length - 1]?.key || "");
+
+  function selectGranularity(key) {
+    setGranularity(key);
+    const p = periodsFor(growth, key);
+    setAKey(p[0]?.key || "");
+    setBKey(p[p.length - 1]?.key || "");
+  }
+
+  const activeLabel = GRANULARITIES.find((g) => g.key === granularity).label;
+
+  return (
+    <div>
+      <div className="granularity-row">
+        {GRANULARITIES.map((g) => (
+          <button
+            key={g.key}
+            className={`board-nav-item${granularity === g.key ? " active" : ""}`}
+            onClick={() => selectGranularity(g.key)}
+            type="button"
+          >
+            {g.label}
+          </button>
+        ))}
+      </div>
+
+      {granularity === "yearly" ? (
+        <div className="unavailable-note">
+          Not yet available — only one season of history exists. This view will be added once a
+          second season's data exists, rather than being faked or hidden.
+        </div>
+      ) : periods.length < 2 ? (
+        <div className="empty-state">
+          Not enough {activeLabel.toLowerCase()}s with data yet to compare.
+        </div>
+      ) : (
+        <>
+          <div className="compare-picker-row">
+            <label>
+              {activeLabel} A
+              <select value={aKey} onChange={(e) => setAKey(e.target.value)}>
+                {periods.map((p) => (
+                  <option key={p.key} value={p.key}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              {activeLabel} B
+              <select value={bKey} onChange={(e) => setBKey(e.target.value)}>
+                {periods.map((p) => (
+                  <option key={p.key} value={p.key}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <CompareBlock
+            title="Intentions, Enrolments & B-less"
+            comparison={buildComparison(
+              periods.find((p) => p.key === aKey),
+              periods.find((p) => p.key === bKey)
+            )}
+          />
+        </>
       )}
     </div>
   );

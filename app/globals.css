@@ -62,11 +62,6 @@ a {
 }
 
 .app-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 1rem;
   margin-bottom: var(--section-gap);
 }
 
@@ -78,6 +73,18 @@ a {
 .app-header p {
   margin: 0;
   color: var(--text-muted);
+}
+
+.app-title-button {
+  display: block;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
 }
 
 .banner {
@@ -154,6 +161,51 @@ a {
   background: var(--text);
   color: var(--bg);
   border-color: var(--text);
+}
+
+/* Landing screen: three big clickable board tiles, no numbers — the only
+   way into a board's content is to click its tile. */
+.board-landing {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--card-gap);
+}
+
+.board-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.6rem;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.board-tile:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.board-tile-label {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.board-tile-desc {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.board-tile-arrow {
+  margin-top: 0.5rem;
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.9rem;
 }
 
 .section {
@@ -384,4 +436,75 @@ tbody tr:hover {
   font-size: 0.95rem;
   text-transform: none;
   letter-spacing: normal;
+}
+
+/* Name-only click-to-drill-down picker (By school / By coach) — a search
+   box plus a wrapping list of name pills, no numbers until you click one. */
+.name-search {
+  display: block;
+  width: 100%;
+  max-width: 360px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.6rem 0.9rem;
+  color: var(--text);
+  font-size: 0.95rem;
+  margin-bottom: 1rem;
+}
+
+.name-pill-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.name-pill {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.5rem 1.1rem;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.name-pill:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.name-pill.active {
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
+}
+
+.granularity-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 1.25rem;
+}
+
+.date-input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.6rem 0.9rem;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.back-link {
+  display: inline-block;
+  background: none;
+  border: none;
+  padding: 0;
+  margin-bottom: 1rem;
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
 }
