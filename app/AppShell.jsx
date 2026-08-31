@@ -56,10 +56,14 @@ export default function AppShell({ growth, currentState, currentStateHistory }) 
   return (
     <div className="page">
       <header className="app-header">
-        <button className="app-title-button" onClick={() => setBoard(null)} type="button">
-          <h1>B-Active Group Ops Dashboard</h1>
-        </button>
-        <p>Enrolment funnel and current-state roster, JHB &amp; CPT.</p>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className="app-logo" src="/bactive-logo.png" alt="B-Active logo" />
+        <div>
+          <button className="app-title-button" onClick={() => setBoard(null)} type="button">
+            <h1>B-Active Group Ops Dashboard</h1>
+          </button>
+          <p>Enrolment funnel and current-state roster, JHB &amp; CPT.</p>
+        </div>
       </header>
 
       {bothLive ? (
