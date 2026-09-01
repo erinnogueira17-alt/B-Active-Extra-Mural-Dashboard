@@ -51,7 +51,6 @@ export default function AppShell({ growth, currentState, currentStateHistory }) 
   const [board, setBoard] = useState(null);
 
   const anyLive = growth.source === "live" || currentState.source === "live";
-  const bothLive = growth.source === "live" && currentState.source === "live";
 
   return (
     <div className="page">
@@ -65,23 +64,6 @@ export default function AppShell({ growth, currentState, currentStateHistory }) 
           <p>Enrolment funnel and current-state roster, JHB &amp; CPT.</p>
         </div>
       </header>
-
-      {bothLive ? (
-        <div className="banner live">
-          Live data — last synced{" "}
-          {new Date(growth.syncedAt || currentState.syncedAt).toLocaleString()}.
-        </div>
-      ) : anyLive ? (
-        <div className="banner live">
-          Partially live — {growth.source === "live" ? "Enrolment" : "Current State"} data is
-          synced, the other board is still showing seed data (no sync has run for it yet).
-        </div>
-      ) : (
-        <div className="banner seed">
-          Showing seed data — no nightly sync has run yet. Numbers below are honest
-          placeholders, not real figures, until a sync succeeds.
-        </div>
-      )}
 
       {board && (
         <nav className="board-nav">
@@ -123,6 +105,12 @@ export default function AppShell({ growth, currentState, currentStateHistory }) 
           history={currentStateHistory?.data || []}
         />
       )}
+
+      <footer className="sync-footer">
+        {anyLive
+          ? `Last synced ${new Date(growth.syncedAt || currentState.syncedAt).toLocaleString()}`
+          : "Not yet synced — showing seed data"}
+      </footer>
     </div>
   );
 }
