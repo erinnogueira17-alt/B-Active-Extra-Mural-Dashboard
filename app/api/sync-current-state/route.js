@@ -4,18 +4,23 @@ import { fetchTabValues, listTabTitles } from "../../../lib/sheetsSync.js";
 import { parseSchoolRoster, aggregateCurrentState } from "../../../lib/currentStateAggregate.js";
 
 const HISTORY_BLOB_KEY = "current-state-history.json";
-// One entry per calendar day is plenty (the sync only runs nightly); this
-// bounds the blob's size rather than letting it grow forever.
+// The sync now runs hourly, but history still keeps just one entry per
+// calendar day — appendHistorySnapshot below replaces "today"'s entry each
+// time rather than appending a new one, so a day's entry simply gets
+// refreshed with more current numbers through the day instead of the
+// history array growing 24x. This bounds the blob's size rather than
+// letting it grow forever.
 const MAX_HISTORY_ENTRIES = 800;
 
-// Deliberately NOT shifted to SAST: the nightly cron fires at 22:00 UTC,
-// which is exactly 00:00 SAST — the true instant the South African
-// business day rolls over. At that instant, `generatedAt`'s UTC calendar
-// date is still the day that just ended in SAST (e.g. a run at
-// 2026-08-31T22:00:00Z labels itself "2026-08-31", which IS the SAST day
-// it's meant to capture). Converting `generatedAt` to true SAST wall-clock
-// here would flip that label forward to the next day instead — the
-// opposite of correct — so this stays a plain UTC slice.
+// Deliberately NOT shifted to SAST. For 22 of the 24 hourly runs, a plain
+// UTC calendar-date slice of `generatedAt` already agrees with the true
+// SAST date (SAST is only +2h ahead, so the two only disagree during
+// 22:00-23:59 UTC, which is 00:00-01:59 SAST the *next* day). During that
+// one 2-hour window, this labels the snapshot with the SAST day that just
+// ended rather than the few-hours-old new day — matching the original
+// nightly-cron design (which fired at exactly 22:00 UTC = 00:00 SAST, on
+// purpose, to capture a just-completed SAST day). Converting to true SAST
+// wall-clock here would flip that window's label forward by a day instead.
 function snapshotFrom(aggregated) {
   const date = aggregated.generatedAt.slice(0, 10);
   return {
