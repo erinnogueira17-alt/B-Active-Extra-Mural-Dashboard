@@ -536,3 +536,15 @@ tbody tr:hover {
   border-radius: 8px;
   padding: 0.15rem 0.6rem;
 }
+
+/* Sync status used to be a loud banner at the top of every page; it's
+   deliberately reduced to a near-invisible timestamp at the very bottom
+   instead, so it doesn't compete with the actual numbers. */
+.sync-footer {
+  margin-top: var(--section-gap);
+  padding-top: 1rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.6rem;
+  opacity: 0.6;
+}
