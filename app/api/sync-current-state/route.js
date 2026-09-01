@@ -8,6 +8,14 @@ const HISTORY_BLOB_KEY = "current-state-history.json";
 // bounds the blob's size rather than letting it grow forever.
 const MAX_HISTORY_ENTRIES = 800;
 
+// Deliberately NOT shifted to SAST: the nightly cron fires at 22:00 UTC,
+// which is exactly 00:00 SAST — the true instant the South African
+// business day rolls over. At that instant, `generatedAt`'s UTC calendar
+// date is still the day that just ended in SAST (e.g. a run at
+// 2026-08-31T22:00:00Z labels itself "2026-08-31", which IS the SAST day
+// it's meant to capture). Converting `generatedAt` to true SAST wall-clock
+// here would flip that label forward to the next day instead — the
+// opposite of correct — so this stays a plain UTC slice.
 function snapshotFrom(aggregated) {
   const date = aggregated.generatedAt.slice(0, 10);
   return {
