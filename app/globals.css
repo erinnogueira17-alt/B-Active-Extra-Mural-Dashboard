@@ -38,8 +38,18 @@ body {
   margin: 0;
 }
 
+/* B-Active logo wallpaper: sits purely on the body's own background layer
+   (behind the normal document flow, never overlapping or dimming actual
+   content) — fixed so it reads as one continuous backdrop behind the page
+   rather than scrolling with it. Every real surface (.card, .kpi-card,
+   .board-tile, etc.) already paints its own --surface background on top,
+   so the wallpaper only ever shows through the page's own gutters/gaps. */
 body {
-  background: var(--bg);
+  background-color: var(--bg);
+  background-image: url("/bactive-wallpaper.webp");
+  background-repeat: repeat;
+  background-attachment: fixed;
+  background-position: top left;
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
