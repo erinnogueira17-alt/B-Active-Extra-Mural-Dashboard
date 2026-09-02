@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import OverviewBoard from "./OverviewBoard.jsx";
 import EnrolmentBoard from "./EnrolmentBoard.jsx";
 import CurrentStateBoard from "./CurrentStateBoard.jsx";
@@ -52,20 +51,21 @@ function BoardTiles({ onNavigate }) {
 // Google Sheets instead of waiting for the next hourly cron run. Hits
 // /api/manual-sync (which runs the same two sync jobs the cron calls,
 // server-side, without ever exposing the cron secret to the browser), then
-// router.refresh() re-renders the current server components against the
-// freshly-synced blob data — no full page reload needed.
+// does a full page reload rather than router.refresh(). A plain client-side
+// refresh goes through Next's router transition machinery, which is one
+// more layer that could hold onto something stale; a hard reload is a
+// completely fresh request straight to the server with nothing in between,
+// which is what "sync now" needs to actually mean *now*.
 function SyncNowButton() {
-  const router = useRouter();
   const [state, setState] = useState("idle"); // idle | syncing | error
 
   async function handleClick() {
     setState("syncing");
     try {
-      const res = await fetch("/api/manual-sync", { method: "POST" });
+      const res = await fetch("/api/manual-sync", { method: "POST", cache: "no-store" });
       const body = await res.json().catch(() => ({ ok: false }));
       if (!body.ok) throw new Error("Sync failed");
-      setState("idle");
-      router.refresh();
+      window.location.reload();
     } catch {
       setState("error");
     }
