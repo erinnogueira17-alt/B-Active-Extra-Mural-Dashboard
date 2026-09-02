@@ -96,8 +96,8 @@ export default function LandingSummary({ growth, currentState }) {
 
       <div className="card-grid" style={{ marginTop: "1.25rem" }}>
         <MetricRow title="Enrolments" metricKey="enrolments" day={day} month={month} year={year} />
-        <MetricRow title="Intentions" metricKey="intentions" day={day} month={month} year={year} />
         <MetricRow title="B-less" metricKey="bless" day={day} month={month} year={year} />
+        <MetricRow title="Intentions" metricKey="intentions" day={day} month={month} year={year} />
       </div>
     </div>
   );
