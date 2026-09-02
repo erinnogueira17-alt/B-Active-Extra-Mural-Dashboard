@@ -75,6 +75,15 @@ async function appendHistorySnapshot(aggregated) {
     addRandomSuffix: false,
     allowOverwrite: true,
     contentType: "application/json",
+    // This blob is overwritten in place at the same URL every sync (see the
+    // allowOverwrite comment above) rather than getting a fresh URL each
+    // time. Vercel Blob's default cache-control (1 year, public) is built
+    // for content-addressed/random-suffix URLs where a stable URL implies
+    // stable content — that assumption breaks here, so the CDN would keep
+    // serving whatever it cached first no matter how many times the
+    // underlying object changes. A near-zero max-age forces revalidation on
+    // every read instead.
+    cacheControlMaxAge: 0,
   });
 
   return updated;
@@ -117,6 +126,9 @@ export async function GET(request) {
       addRandomSuffix: false,
       allowOverwrite: true,
       contentType: "application/json",
+      // See the cacheControlMaxAge comment on the history blob above — same
+      // stable-URL-gets-overwritten pattern, same fix.
+      cacheControlMaxAge: 0,
     });
 
     const history = aggregated.parsed ? await appendHistorySnapshot(aggregated) : null;
