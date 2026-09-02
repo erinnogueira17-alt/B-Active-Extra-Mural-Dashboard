@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import OverviewBoard from "./OverviewBoard.jsx";
 import EnrolmentBoard from "./EnrolmentBoard.jsx";
 import CurrentStateBoard from "./CurrentStateBoard.jsx";
@@ -44,6 +45,41 @@ function BoardTiles({ onNavigate }) {
         </button>
       ))}
     </div>
+  );
+}
+
+// Lets anyone viewing the dashboard force an immediate re-pull from the
+// Google Sheets instead of waiting for the next hourly cron run. Hits
+// /api/manual-sync (which runs the same two sync jobs the cron calls,
+// server-side, without ever exposing the cron secret to the browser), then
+// router.refresh() re-renders the current server components against the
+// freshly-synced blob data — no full page reload needed.
+function SyncNowButton() {
+  const router = useRouter();
+  const [state, setState] = useState("idle"); // idle | syncing | error
+
+  async function handleClick() {
+    setState("syncing");
+    try {
+      const res = await fetch("/api/manual-sync", { method: "POST" });
+      const body = await res.json().catch(() => ({ ok: false }));
+      if (!body.ok) throw new Error("Sync failed");
+      setState("idle");
+      router.refresh();
+    } catch {
+      setState("error");
+    }
+  }
+
+  return (
+    <button
+      className="sync-now-button"
+      onClick={handleClick}
+      disabled={state === "syncing"}
+      type="button"
+    >
+      {state === "syncing" ? "Syncing…" : state === "error" ? "Sync failed — retry" : "Sync now"}
+    </button>
   );
 }
 
@@ -107,9 +143,12 @@ export default function AppShell({ growth, currentState, currentStateHistory }) 
       )}
 
       <footer className="sync-footer">
-        {anyLive
-          ? `Last synced ${new Date(growth.syncedAt || currentState.syncedAt).toLocaleString()}`
-          : "Not yet synced — showing seed data"}
+        <span>
+          {anyLive
+            ? `Last synced ${new Date(growth.syncedAt || currentState.syncedAt).toLocaleString()}`
+            : "Not yet synced — showing seed data"}
+        </span>
+        <SyncNowButton />
       </footer>
     </div>
   );
