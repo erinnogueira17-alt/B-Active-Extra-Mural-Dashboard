@@ -553,8 +553,34 @@ tbody tr:hover {
 .sync-footer {
   margin-top: var(--section-gap);
   padding-top: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
   text-align: center;
   color: var(--text-muted);
   font-size: 0.6rem;
   opacity: 0.6;
+}
+
+/* Slightly larger and more legible than the timestamp next to it — it's a
+   tap target, not a label — but still small enough to stay out of the way. */
+.sync-now-button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  opacity: 1;
+}
+
+.sync-now-button:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.sync-now-button:disabled {
+  color: var(--text-muted);
+  cursor: wait;
 }
