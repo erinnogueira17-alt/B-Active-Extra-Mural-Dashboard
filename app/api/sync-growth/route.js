@@ -265,6 +265,13 @@ export async function GET(request) {
       addRandomSuffix: false,
       allowOverwrite: true,
       contentType: "application/json",
+      // Vercel Blob's default cache-control (1 year, public) assumes a
+      // stable URL means stable content — true for random-suffix blobs, not
+      // for this one, which is overwritten in place at the same URL every
+      // sync (see the allowOverwrite comment above). Without this, the CDN
+      // keeps serving whatever it cached on the very first sync no matter
+      // how many times the underlying object actually changes.
+      cacheControlMaxAge: 0,
     });
 
     const debug = new URL(request.url).searchParams.get("debug");
