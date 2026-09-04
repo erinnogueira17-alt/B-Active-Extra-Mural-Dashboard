@@ -4,9 +4,28 @@
 // Deeper detail (comparisons, per-school, daily calendar browsing, etc.)
 // lives one click down in the board tiles below this.
 
-function latestDay(daily) {
-  const sorted = [...(daily || [])].sort((a, b) => (a.key < b.key ? -1 : 1));
-  return sorted[sorted.length - 1] || null;
+// South Africa Standard Time is a fixed UTC+2 year-round (no DST). Every
+// row's __timestamp — and every daily/monthly key built from it in
+// lib/aggregate.js — stores the sheet's own SAST wall-clock numbers *as if*
+// they were UTC (a deliberate bucketing trick, see lib/aggregate.js). `now`
+// here is a real clock instant (true UTC), so it needs the same +2h shift
+// before reading its calendar date, or "today" would resolve to the wrong
+// key for up to 2 hours around SAST midnight.
+const SAST_OFFSET_MS = 2 * 60 * 60 * 1000;
+
+function todayKey(now = new Date()) {
+  return new Date(now.getTime() + SAST_OFFSET_MS).toISOString().slice(0, 10);
+}
+
+// Strictly today's real date — not "whichever day most recently had any
+// activity". Falling back to an earlier day silently showed that day's
+// total under a "Today" label, which reads as today's number when it isn't
+// (e.g. showing 4 from yesterday's sheet rows when only 1 has come in
+// today). If nothing has synced for today yet, this correctly shows 0
+// rather than reusing a prior day's count.
+function todaysEntry(daily) {
+  const key = todayKey();
+  return (daily || []).find((d) => d.key === key) || null;
 }
 
 function latestMonth(months) {
@@ -56,7 +75,7 @@ export default function LandingSummary({ growth, currentState }) {
   const g = growth.data;
   const cs = currentState.data;
 
-  const day = latestDay(g.daily);
+  const day = todaysEntry(g.daily);
   const month = latestMonth(g.months);
   const year = seasonTotals(g.months);
 
