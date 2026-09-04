@@ -5,7 +5,6 @@ import {
   listTabTitles,
   rowsToObjects,
   findHeaderKey,
-  detectDateColumn,
   scoreDateColumns,
   toIsoDate,
 } from "../../../lib/sheetsSync.js";
@@ -187,14 +186,22 @@ async function fetchYearCombinedRows(spreadsheetId) {
   for (const tab of targets) {
     const values = await fetchTabValues(spreadsheetId, tab);
     const tabRows = rowsToObjects(values);
-    const resolved = detectDateColumn(tabRows);
-    const venueKey = findVenueKey(tabRows);
     const headers = tabRows[0] ? Object.keys(tabRows[0]) : [];
+    // Column A is always the submission date/timestamp on the Intentions,
+    // Enrolments, and B-less sheets — confirmed directly against the real
+    // sheets, month-first (M/D/YYYY), same as Google Forms' own
+    // auto-generated Timestamp column always is. Read positionally rather
+    // than via detectDateColumn's content-scoring heuristic: that heuristic
+    // was picking a different, wrong column on at least one of these
+    // sheets, silently dropping same-day rows (a real submission for
+    // 9/4/2026 never made it into that day's count).
+    const dateKey = headers[0] || null;
+    const venueKey = findVenueKey(tabRows);
     const statusKey = findHeaderKey(headers, "status") || findStatusKeyByContent(tabRows);
     const reasonKey = findHeaderKey(headers, "reason");
     const packageKey = findHeaderKey(headers, "package");
     for (const row of tabRows) {
-      row.__timestamp = resolved ? toIsoDate(row[resolved.key], resolved.dayFirst) : undefined;
+      row.__timestamp = dateKey ? toIsoDate(row[dateKey], false) : undefined;
       row.__venue = venueKey ? row[venueKey] : undefined;
       row.__status = statusKey ? row[statusKey] : undefined;
       row.__reason = reasonKey ? row[reasonKey] : undefined;
@@ -205,8 +212,8 @@ async function fetchYearCombinedRows(spreadsheetId) {
       tab,
       rowCount: tabRows.length,
       allHeaders: headers,
-      timestampKey: resolved ? resolved.key : null,
-      dayFirst: resolved ? resolved.dayFirst : null,
+      timestampKey: dateKey,
+      dayFirst: false,
       sampleTimestamps: tabRows.slice(0, 5).map((r) => r.__timestamp),
       columnScores: scoreDateColumns(tabRows).slice(0, 6),
       venueKey,
