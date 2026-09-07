@@ -193,12 +193,18 @@ async function fetchYearCombinedRows(spreadsheetId) {
     const statusKey = findHeaderKey(headers, "status") || findStatusKeyByContent(tabRows);
     const reasonKey = findHeaderKey(headers, "reason");
     const packageKey = findHeaderKey(headers, "package");
+    // B-less-only, diagnostic for now: the real header text is "What would
+    // you like to do with your membership?" — matched on a distinctive
+    // enough substring that it won't collide with "Estimated duration of
+    // your Membership?", which is a different field on the same sheet.
+    const membershipActionKey = findHeaderKey(headers, "like to do with your membership");
     for (const row of tabRows) {
       row.__timestamp = resolved ? toIsoDate(row[resolved.key], resolved.dayFirst) : undefined;
       row.__venue = venueKey ? row[venueKey] : undefined;
       row.__status = statusKey ? row[statusKey] : undefined;
       row.__reason = reasonKey ? row[reasonKey] : undefined;
       row.__package = packageKey ? row[packageKey] : undefined;
+      row.__membershipAction = membershipActionKey ? row[membershipActionKey] : undefined;
     }
     rows.push(...tabRows);
     perTab.push({
@@ -214,6 +220,8 @@ async function fetchYearCombinedRows(spreadsheetId) {
       statusKey,
       reasonKey,
       packageKey,
+      membershipActionKey,
+      membershipActionSamples: sampleVenueValues(tabRows, membershipActionKey),
     });
   }
   return { rows, allTabs: tabs, chosenTabs: targets, perTab };
