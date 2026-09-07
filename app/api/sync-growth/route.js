@@ -214,6 +214,18 @@ async function fetchYearCombinedRows(spreadsheetId) {
       timestampKey: resolved ? resolved.key : null,
       dayFirst: resolved ? resolved.dayFirst : null,
       sampleTimestamps: tabRows.slice(0, 5).map((r) => r.__timestamp),
+      // Content-scoring for column/dayFirst detection only samples the
+      // first 200 rows; these two extra samples check whether the raw
+      // format (and how many rows fail to parse) actually stays the same
+      // all the way to the end of the tab — these sheets are hand-edited
+      // and have drifted format mid-tab before.
+      tailRawSamples: resolved
+        ? tabRows.slice(-10).map((r) => r[resolved.key])
+        : null,
+      tailTimestamps: tabRows.slice(-10).map((r) => r.__timestamp),
+      unparsedCount: resolved
+        ? tabRows.filter((r) => r[resolved.key] && !r.__timestamp).length
+        : null,
       columnScores: scoreDateColumns(tabRows).slice(0, 6),
       venueKey,
       venueSamples: sampleVenueValues(tabRows, venueKey),
