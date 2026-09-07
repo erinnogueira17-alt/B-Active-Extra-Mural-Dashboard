@@ -159,7 +159,7 @@ function sampleVenueValues(tabRows, key) {
     if (!v) continue;
     counts.set(v, (counts.get(v) || 0) + 1);
   }
-  const top = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 60);
+  const top = [...counts.entries()].sort((a, b) => b[1] - a[1]);
   return { key, uniqueCount: counts.size, top };
 }
 
