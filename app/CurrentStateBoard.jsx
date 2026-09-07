@@ -187,6 +187,64 @@ function NamePicker({ backLabel, items, getLabel, renderDetail, searchPlaceholde
   );
 }
 
+// A what-if calculator, not tied to the real roster data: enter a number
+// of players and project their monthly revenue at a flat R400/lesson rate
+// (less 15% VAT), assuming the standard 4-lessons-per-month billing cycle.
+// Deliberately separate from the "Revenue" figure elsewhere on this board,
+// which is the real captured amount straight from the sheet's own tier
+// mix — this is a projection for a hypothetical player count, not a
+// re-derivation of actual revenue.
+const LESSON_RATE = 400 * 0.85; // R400 per lesson, less 15% VAT
+const LESSONS_PER_MONTH = 4;
+
+function RevenueProjection() {
+  const [playersInput, setPlayersInput] = useState("");
+  const players = Number(playersInput) || 0;
+  const perPlayerMonthly = LESSON_RATE * LESSONS_PER_MONTH;
+  const projected = players * perPlayerMonthly;
+
+  return (
+    <div>
+      <p className="section-subtitle">
+        Enter a number of players to project their revenue for the month, assuming an
+        average of {LESSONS_PER_MONTH} lessons per player at {formatCurrency(400)}/lesson,
+        less 15% VAT ({formatCurrency(LESSON_RATE)}/lesson).
+      </p>
+      <label style={{ display: "block", marginBottom: "1.25rem" }}>
+        <span className="kpi-label" style={{ display: "block", marginBottom: "0.5rem" }}>
+          Number of players
+        </span>
+        <input
+          className="date-input"
+          type="number"
+          min="0"
+          inputMode="numeric"
+          value={playersInput}
+          onChange={(e) => setPlayersInput(e.target.value)}
+          placeholder="e.g. 50"
+        />
+      </label>
+      <div className="kpi-grid">
+        <div className="kpi-card">
+          <p className="kpi-label">Per player, per month</p>
+          <div className="kpi-value">{formatCurrency(perPlayerMonthly)}</div>
+          <p className="kpi-sub">
+            {LESSONS_PER_MONTH} lessons × {formatCurrency(LESSON_RATE)}/lesson
+          </p>
+        </div>
+        <div className="kpi-card">
+          <p className="kpi-label">Projected revenue</p>
+          <div className="kpi-value">{formatCurrency(projected)}</div>
+          <p className="kpi-sub">
+            {players.toLocaleString()} player{players === 1 ? "" : "s"} ×{" "}
+            {formatCurrency(perPlayerMonthly)}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function CurrentStateBoard({ data, growth, history }) {
   if (!data.parsed) {
     return (
@@ -239,6 +297,12 @@ export default function CurrentStateBoard({ data, growth, history }) {
           </div>
         </div>
       ),
+    },
+    {
+      key: "revenue-projection",
+      label: "Revenue projection",
+      description: "Enter a player count to project monthly revenue at R400/lesson, less VAT",
+      render: () => <RevenueProjection />,
     },
     {
       key: "net-movement",
