@@ -154,7 +154,7 @@ function WeeklyPicker({ weekly }) {
   );
 }
 
-// 13 months for a season is few enough for pills rather than a dropdown.
+// 12 months for a season is few enough for pills rather than a dropdown.
 function MonthPicker({ months }) {
   const [key, setKey] = useState(
     [...months].reverse().find((m) => m.intentions != null)?.key || months[0]?.key || ""
