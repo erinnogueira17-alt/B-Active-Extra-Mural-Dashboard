@@ -68,10 +68,66 @@ function periodsFor(growth, granularityKey) {
   );
 }
 
+// "Year" isn't a two-period comparison like the others — there's only one
+// calendar year (the season itself) of data, so there's nothing to compare
+// it against. Instead it's a running year-to-date tracker: cumulative
+// totals built up month by month, so you can watch the year add up over
+// time rather than seeing an artificial "vs" that has nothing real on the
+// other side.
+function YearlyTracker({ growth }) {
+  const months = (growth.months || []).filter(
+    (m) => m.intentions != null || m.enrolments != null || m.bless != null
+  );
+  if (months.length === 0) {
+    return <div className="empty-state">No data yet this year.</div>;
+  }
+
+  let running = { intentions: 0, enrolments: 0, bless: 0 };
+  const rows = months.map((m) => {
+    running = {
+      intentions: running.intentions + (m.intentions || 0),
+      enrolments: running.enrolments + (m.enrolments || 0),
+      bless: running.bless + (m.bless || 0),
+    };
+    return { key: m.key, label: m.label, ...running };
+  });
+
+  return (
+    <div className="section">
+      <h3 className="section-title">Year-to-date tracker</h3>
+      <p className="section-subtitle">
+        Running totals for Intentions, Enrolments & B-less, cumulative month by month
+      </p>
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Month</th>
+              <th>Intentions</th>
+              <th>Enrolments</th>
+              <th>B-less</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.key}>
+                <td>{r.label}</td>
+                <td>{r.intentions}</td>
+                <td>{r.enrolments}</td>
+                <td>{r.bless}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 // Lets a person choose the granularity (day/week/month/year) and then any
 // two periods at that granularity to compare — not just the latest pair.
-// Year is included for completeness but always shows the honest
-// "not yet available" note, since only one season of history exists.
+// Year is a running tracker instead (see YearlyTracker above), since a
+// two-period "vs" comparison has nothing real on the other side yet.
 export function PeriodCompare({ growth }) {
   const [granularity, setGranularity] = useState("monthly");
   const periods = periodsFor(growth, granularity);
@@ -103,10 +159,7 @@ export function PeriodCompare({ growth }) {
       </div>
 
       {granularity === "yearly" ? (
-        <div className="unavailable-note">
-          Not yet available — only one season of history exists. This view will be added once a
-          second season's data exists, rather than being faked or hidden.
-        </div>
+        <YearlyTracker growth={growth} />
       ) : periods.length < 2 ? (
         <div className="empty-state">
           Not enough {activeLabel.toLowerCase()}s with data yet to compare.
