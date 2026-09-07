@@ -1,6 +1,6 @@
 "use client";
 
-import { PeriodCompare } from "./CompareBlock.jsx";
+import { PeriodCompare, GrowthTracker } from "./CompareBlock.jsx";
 import TopicBoard from "./TopicBoard.jsx";
 
 function formatCurrency(n) {
@@ -109,6 +109,12 @@ export default function OverviewBoard({ growth, currentState }) {
       label: "Comparisons",
       description: "Intentions, Enrolments & B-less — any day, week, month or year",
       render: () => <PeriodCompare growth={g} />,
+    },
+    {
+      key: "growth",
+      label: "Growth",
+      description: "Month-on-month trend — each month's own totals, with % change from the month before",
+      render: () => <GrowthTracker growth={g} />,
     },
   ];
 
