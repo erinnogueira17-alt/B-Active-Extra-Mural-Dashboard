@@ -226,6 +226,12 @@ async function fetchYearCombinedRows(spreadsheetId) {
       unparsedCount: resolved
         ? tabRows.filter((r) => r[resolved.key] && !r.__timestamp).length
         : null,
+      unparsedSamples: resolved
+        ? tabRows
+            .filter((r) => r[resolved.key] && !r.__timestamp)
+            .slice(0, 40)
+            .map((r) => r[resolved.key])
+        : null,
       columnScores: scoreDateColumns(tabRows).slice(0, 6),
       venueKey,
       venueSamples: sampleVenueValues(tabRows, venueKey),
