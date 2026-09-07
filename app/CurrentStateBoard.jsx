@@ -198,10 +198,39 @@ function NamePicker({ backLabel, items, getLabel, renderDetail, searchPlaceholde
 const MONTHLY_RATE = 400 * 0.85; // R400/month per player, less 15% VAT
 const LESSONS_PER_MONTH = 4;
 
-function RevenueProjection() {
+// Only these four tiers fit a "flat monthly fee, X% off" model — Annual and
+// Flash Sale are lump-sum payments for a fixed term (confirmed directly:
+// Flash Sale is R1,100 covering the rest of the year, not a monthly rate),
+// and 100% is non-paying, so none of the three have a stable per-month
+// figure to blend in here. They're still reported for real in Package mix
+// below, just not folded into this rate.
+const DISCOUNT_TIERS = [
+  { key: "pct0", label: "0% (full price)", off: 0 },
+  { key: "pct10", label: "10% off", off: 0.1 },
+  { key: "pct20", label: "20% off", off: 0.2 },
+  { key: "pct50", label: "50% off", off: 0.5 },
+];
+
+// Weighted-average monthly rate across the real current mix of 0/10/20/50%
+// discount players, so the projection can reflect actual pricing instead of
+// assuming every projected player pays full price. Returns null if none of
+// these four tiers have any players yet (nothing real to weight by).
+function blendedMonthlyRate(tiers) {
+  const totalCount = DISCOUNT_TIERS.reduce((sum, t) => sum + (tiers?.[t.key] || 0), 0);
+  if (totalCount === 0) return null;
+  const weighted = DISCOUNT_TIERS.reduce(
+    (sum, t) => sum + (tiers?.[t.key] || 0) * (1 - t.off) * MONTHLY_RATE,
+    0
+  );
+  return weighted / totalCount;
+}
+
+function RevenueProjection({ tiers }) {
   const [playersInput, setPlayersInput] = useState("");
   const players = Number(playersInput) || 0;
-  const projected = players * MONTHLY_RATE;
+  const projectedFlat = players * MONTHLY_RATE;
+  const blended = blendedMonthlyRate(tiers);
+  const projectedBlended = blended != null ? players * blended : null;
 
   return (
     <div>
@@ -226,18 +255,91 @@ function RevenueProjection() {
       </label>
       <div className="kpi-grid">
         <div className="kpi-card">
-          <p className="kpi-label">Per player, per month</p>
+          <p className="kpi-label">Full price, per player/month</p>
           <div className="kpi-value">{formatCurrency(MONTHLY_RATE)}</div>
           <p className="kpi-sub">{formatCurrency(400)}/month, less 15% VAT</p>
         </div>
         <div className="kpi-card">
-          <p className="kpi-label">Projected revenue</p>
-          <div className="kpi-value">{formatCurrency(projected)}</div>
+          <p className="kpi-label">Projected revenue (full price)</p>
+          <div className="kpi-value">{formatCurrency(projectedFlat)}</div>
           <p className="kpi-sub">
             {players.toLocaleString()} player{players === 1 ? "" : "s"} ×{" "}
             {formatCurrency(MONTHLY_RATE)}
           </p>
         </div>
+        {blended != null && (
+          <>
+            <div className="kpi-card">
+              <p className="kpi-label">Blended rate, per player/month</p>
+              <div className="kpi-value">{formatCurrency(blended)}</div>
+              <p className="kpi-sub">Weighted by your current 0/10/20/50% discount mix</p>
+            </div>
+            <div className="kpi-card">
+              <p className="kpi-label">Projected revenue (current discount mix)</p>
+              <div className="kpi-value">{formatCurrency(projectedBlended)}</div>
+              <p className="kpi-sub">
+                {players.toLocaleString()} player{players === 1 ? "" : "s"} ×{" "}
+                {formatCurrency(blended)}
+              </p>
+            </div>
+          </>
+        )}
+      </div>
+      <p className="unavailable-note" style={{ marginTop: "1.25rem" }}>
+        Annual, Flash Sale, and 100%-sponsored players aren&apos;t included in the blended
+        rate — Annual and Flash Sale are billed as a lump sum for a fixed term, not a flat
+        monthly fee, and 100% is non-paying. See Package mix for their real counts.
+      </p>
+    </div>
+  );
+}
+
+const TIER_ROWS = [
+  { key: "annual", label: "Annual" },
+  { key: "pct50", label: "50% off" },
+  { key: "pct20", label: "20% off" },
+  { key: "pct10", label: "10% off" },
+  { key: "pct0", label: "0% (full price)" },
+  { key: "flashSale", label: "Flash Sale" },
+];
+
+// The real, current mix of packages across every enrolled player — pure
+// reporting from the live roster, no assumptions or formulas.
+function PackageMix({ totals }) {
+  const enrolled = totals.enrolledPlayers || 0;
+  if (enrolled === 0) {
+    return <div className="empty-state">No data yet.</div>;
+  }
+
+  const rows = [
+    ...TIER_ROWS.map((t) => ({ label: t.label, count: totals.tiers?.[t.key] || 0 })),
+    { label: "100% (non-paying)", count: totals.sponsoredPlayers || 0 },
+  ];
+
+  return (
+    <div>
+      <p className="section-subtitle">
+        Each package&apos;s share of all {enrolled.toLocaleString()} enrolled players
+      </p>
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Package</th>
+              <th>Players</th>
+              <th>% of enrolled</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.label}>
+                <td>{r.label}</td>
+                <td>{r.count.toLocaleString()}</td>
+                <td>{Math.round((r.count / enrolled) * 1000) / 10}%</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
@@ -300,7 +402,13 @@ export default function CurrentStateBoard({ data, growth, history }) {
       key: "revenue-projection",
       label: "Revenue projection",
       description: "Enter a player count to project monthly revenue at R400/month per player, less VAT",
-      render: () => <RevenueProjection />,
+      render: () => <RevenueProjection tiers={data.totals.tiers} />,
+    },
+    {
+      key: "package-mix",
+      label: "Package mix",
+      description: "Real percentage breakdown of players across every package/discount tier",
+      render: () => <PackageMix totals={data.totals} />,
     },
     {
       key: "net-movement",
