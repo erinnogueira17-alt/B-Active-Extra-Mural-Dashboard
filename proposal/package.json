@@ -1,0 +1,14 @@
+{
+  "name": "taroko-feeder-school-proposal",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Print artwork source for the Generation Schools Taroko Feeder-School Partnership Proposal (4pp A4).",
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "preview": "node tools/build.mjs --png"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}
