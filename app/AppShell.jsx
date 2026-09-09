@@ -4,6 +4,7 @@ import { useState } from "react";
 import OverviewBoard from "./OverviewBoard.jsx";
 import EnrolmentBoard from "./EnrolmentBoard.jsx";
 import CurrentStateBoard from "./CurrentStateBoard.jsx";
+import CoachScorecardBoard from "./CoachScorecardBoard.jsx";
 import LandingSummary from "./LandingSummary.jsx";
 
 const BOARDS = [
@@ -21,6 +22,11 @@ const BOARDS = [
     key: "enrolment",
     label: "Enrolment",
     description: "Intentions, Enrolments & B-less — month to date, year to date, any month.",
+  },
+  {
+    key: "coach-scorecard",
+    label: "Coach Scorecard",
+    description: "Rate coaches weekly or monthly and see each coach's score.",
   },
 ];
 
@@ -83,10 +89,13 @@ function SyncNowButton() {
   );
 }
 
-export default function AppShell({ growth, currentState, currentStateHistory }) {
+export default function AppShell({ growth, currentState, currentStateHistory, coachScorecard }) {
   const [board, setBoard] = useState(null);
 
   const anyLive = growth.source === "live" || currentState.source === "live";
+  const coaches = [...new Set((currentState.data.perCoach || []).map((c) => c.coach))].sort((a, b) =>
+    a.localeCompare(b)
+  );
 
   return (
     <div className="page">
@@ -140,6 +149,9 @@ export default function AppShell({ growth, currentState, currentStateHistory }) 
           growth={growth.data}
           history={currentStateHistory?.data || []}
         />
+      )}
+      {board === "coach-scorecard" && (
+        <CoachScorecardBoard data={coachScorecard.data} coaches={coaches} />
       )}
 
       <footer className="sync-footer">
