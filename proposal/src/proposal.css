@@ -1,0 +1,467 @@
+/* ==========================================================================
+   Generation Schools Taroko — Feeder-School Partnership Proposal
+   Four-page A4 portrait print artwork.
+
+   Tone: warm, confident, relationship-led. An excellent school speaking to
+   another excellent school — friendly enough for a crèche or pre-school
+   principal, composed enough to sit on a boardroom table.
+
+   COPY IS CONTENT-LOCKED. Change layout, type, crops and colour balance.
+   Never change wording, numbers, conditions, names or contact details.
+   ========================================================================== */
+
+/* ---------- Typeface system (SIL OFL — see ../fonts/OFL-NOTICE.md) ---------- */
+@font-face{font-family:Display;src:url(../fonts/Poppins-500.ttf) format("truetype");font-weight:500;font-display:block}
+@font-face{font-family:Display;src:url(../fonts/Poppins-600.ttf) format("truetype");font-weight:600;font-display:block}
+@font-face{font-family:Display;src:url(../fonts/Poppins-700.ttf) format("truetype");font-weight:700;font-display:block}
+@font-face{font-family:Body;src:url(../fonts/Inter-400.ttf) format("truetype");font-weight:400;font-display:block}
+@font-face{font-family:Body;src:url(../fonts/Inter-500.ttf) format("truetype");font-weight:500;font-display:block}
+@font-face{font-family:Body;src:url(../fonts/Inter-600.ttf) format("truetype");font-weight:600;font-display:block}
+@font-face{font-family:Label;src:url(../fonts/PlexMono-500.ttf) format("truetype");font-weight:500;font-display:block}
+@font-face{font-family:Label;src:url(../fonts/PlexMono-600.ttf) format("truetype");font-weight:600;font-display:block}
+
+:root{
+  /* Generation Schools Taroko palette — locked */
+  --ink:#102B3A;
+  --blue:#0076AE;
+  --deep:#005C86;
+  --orange:#EE7023;
+  --pale:#DCE8ED;
+  --slate:#58717C;
+  --offwhite:#F7F9FA;
+  --white:#FFFFFF;
+
+  /* Page geometry — the build overrides --bleed/--pw/--ph for the bleed edition */
+  --bleed:0mm;
+  --pw:210mm;
+  --ph:297mm;
+  --margin:16mm;
+
+  /* Soft geometry is what takes the corporate edge off without going childish */
+  --r:3.6mm;
+  --r-sm:2.4mm;
+  --r-pill:40mm;
+
+  --display:Display,"Helvetica Neue",Arial,sans-serif;
+  --body:Body,"Helvetica Neue",Arial,sans-serif;
+  --label:Label,"SFMono-Regular",Menlo,monospace;
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+
+html,body{
+  background:#4d5f68;
+  font-family:var(--body);
+  -webkit-font-smoothing:antialiased;
+  text-rendering:geometricPrecision;
+  font-kerning:normal;
+}
+
+@page{size:var(--pw) var(--ph);margin:0}
+
+.page{
+  position:relative;
+  width:var(--pw);
+  height:var(--ph);
+  overflow:hidden;
+  background:var(--ink);
+  color:var(--white);
+  break-after:page;
+  page-break-after:always;
+  -webkit-print-color-adjust:exact;
+  print-color-adjust:exact;
+}
+.page:last-child{break-after:auto;page-break-after:auto}
+
+@media screen{
+  body{padding:26px 0;display:flex;flex-direction:column;align-items:center;gap:26px}
+  .page{box-shadow:0 14px 46px rgba(0,0,0,.45)}
+}
+
+/* ---------- Image + overlay layers ---------- */
+.bleedimg{
+  position:absolute;inset:0;
+  background-size:cover;
+  background-repeat:no-repeat;
+  background-color:var(--deep);
+}
+.scrim{position:absolute;inset:0}
+
+/* ---------- Safe-area frame (all essential text and the QR live inside) ---------- */
+.safe{
+  position:absolute;
+  left:calc(var(--bleed) + var(--margin));
+  top:calc(var(--bleed) + var(--margin));
+  width:calc(var(--pw) - (2 * var(--bleed)) - (2 * var(--margin)));
+  height:calc(var(--ph) - (2 * var(--bleed)) - (2 * var(--margin)));
+}
+
+/* ---------- Shared components ---------- */
+.pill{
+  display:inline-block;
+  font-family:var(--label);font-weight:600;font-size:6.9pt;
+  letter-spacing:.2em;text-transform:uppercase;
+  padding:2.6mm 5.4mm 2.4mm;
+  border-radius:var(--r-pill);
+  line-height:1;
+}
+.pill--orange{background:var(--orange);color:var(--white)}
+.pill--ghost{border:.35mm solid rgba(255,255,255,.55);color:var(--white)}
+.pill--light{background:rgba(255,255,255,.16);color:var(--white)}
+
+.kicker{
+  font-family:var(--label);font-weight:600;font-size:7pt;
+  letter-spacing:.19em;text-transform:uppercase;color:var(--pale);line-height:1.65;
+}
+.microlabel{
+  font-family:var(--label);font-weight:600;font-size:6.8pt;
+  letter-spacing:.22em;text-transform:uppercase;color:var(--orange);line-height:1.5;
+}
+
+.pagelabel{font-family:var(--label);font-weight:600;line-height:1.6}
+.pagelabel .rule{display:block;width:13mm;height:.9mm;border-radius:1mm;background:var(--orange);margin-bottom:3.6mm}
+.pagelabel .l1{display:block;font-size:7.3pt;letter-spacing:.19em;text-transform:uppercase;color:var(--white)}
+.pagelabel .l2{display:block;font-size:6.5pt;letter-spacing:.23em;text-transform:uppercase;color:rgba(220,232,237,.66)}
+
+.display{
+  font-family:var(--display);font-weight:700;
+  font-size:30pt;line-height:1.1;letter-spacing:-.021em;color:var(--white);
+}
+.display--cover{font-size:37pt;line-height:1.06;letter-spacing:-.026em}
+.accent{color:var(--orange)}
+
+.lede{font-family:var(--body);font-weight:400;font-size:10.2pt;line-height:1.58;color:var(--pale)}
+.body{font-family:var(--body);font-weight:400;font-size:9pt;line-height:1.55;color:var(--pale)}
+
+.footer{
+  position:absolute;left:0;bottom:0;
+  font-family:var(--label);font-weight:500;font-size:6.4pt;
+  letter-spacing:.19em;text-transform:uppercase;color:rgba(220,232,237,.6);
+}
+.footer .n{color:var(--orange);font-weight:600}
+
+/* ---------- Logo tab — official horizontal logo, proportions untouched ---------- */
+.logotab{
+  position:absolute;left:0;top:0;
+  width:calc(var(--bleed) + 74mm);
+  height:calc(var(--bleed) + 28mm);
+  background:var(--white);
+  border-bottom-right-radius:var(--r);
+  display:flex;align-items:center;
+  padding-left:calc(var(--bleed) + var(--margin));
+  padding-right:9mm;
+  -webkit-print-color-adjust:exact;print-color-adjust:exact;
+}
+.logotab img{width:100%;height:auto;max-height:15mm;object-fit:contain;object-position:left center}
+
+/* ==========================================================================
+   PAGE 1 — Cover
+   Full-bleed primary-school football action, kept bright through the middle
+   so it still reads as a photograph rather than a navy wash.
+   ========================================================================== */
+.scrim--cover{
+  background:
+    linear-gradient(180deg,
+      rgba(16,43,58,.66) 0%,
+      rgba(16,43,58,.20) 11%,
+      rgba(16,43,58,.04) 26%,
+      rgba(16,43,58,.16) 42%,
+      rgba(16,43,58,.66) 53%,
+      rgba(16,43,58,.90) 63%,
+      rgba(16,43,58,.95) 78%,
+      rgba(16,43,58,.96) 100%),
+    linear-gradient(90deg,rgba(0,92,134,.30) 0%,rgba(0,92,134,0) 58%);
+}
+.cover-pill{position:absolute;right:0;top:6mm}
+
+/* Warm secondary image: the early-years reader sees their own world at a glance */
+.cover-inset{
+  position:absolute;right:0;top:62mm;
+  width:54mm;height:68mm;
+  border-radius:var(--r);
+  overflow:hidden;
+  background-size:cover;background-position:52% 32%;
+  border:1.1mm solid var(--white);
+  -webkit-print-color-adjust:exact;print-color-adjust:exact;
+}
+
+.cover-copy{position:absolute;left:0;right:0;bottom:44mm}
+.cover-copy .kicker{max-width:156mm;margin-bottom:7mm}
+.cover-copy .display--cover{margin-bottom:8mm}
+.cover-copy .lede{max-width:122mm;margin-bottom:8.5mm}
+.cover-rel{
+  display:inline-block;
+  font-family:var(--display);font-weight:600;font-size:11pt;
+  letter-spacing:-.005em;color:var(--orange);
+}
+
+.metricband{
+  position:absolute;left:0;right:0;bottom:0;
+  height:calc(var(--bleed) + 52mm);
+  background:linear-gradient(180deg,rgba(16,43,58,.62) 0%,rgba(11,33,45,.96) 46%,rgba(11,33,45,.98) 100%);
+}
+.metricband .inner{
+  position:absolute;
+  left:calc(var(--bleed) + var(--margin));
+  right:calc(var(--bleed) + var(--margin));
+  top:13mm;
+  display:grid;grid-template-columns:1fr 1fr 1fr;gap:5mm;
+}
+.metric{
+  background:rgba(255,255,255,.08);
+  border:.3mm solid rgba(220,232,237,.20);
+  border-radius:var(--r);
+  padding:6mm 5.5mm 6.4mm;
+}
+.metric .n{
+  font-family:var(--display);font-weight:700;font-size:26pt;line-height:1;
+  letter-spacing:-.028em;color:var(--orange);display:block;margin-bottom:4mm;white-space:nowrap;
+}
+.metric .l{
+  font-family:var(--label);font-weight:600;font-size:6.4pt;line-height:1.65;
+  letter-spacing:.15em;text-transform:uppercase;color:var(--pale);display:block;
+}
+
+/* ==========================================================================
+   PAGE 2 — Benefits + the sporting grounds
+   A wide, deliberately un-tinted window through the middle: the aerial is the
+   evidence, so it is allowed to be a photograph, not a texture.
+   ========================================================================== */
+/* The aerial gets the top 63% of the sheet at close to its native aspect, so the
+   fields, courts, greens and clubhouse survive the portrait crop instead of
+   being sliced into a narrow strip. */
+.bleedimg--top{bottom:auto;height:60%}
+.scrim--benefits{
+  top:0;bottom:auto;height:60%;
+  background:
+    linear-gradient(102deg,
+      rgba(16,43,58,.55) 0%,
+      rgba(16,43,58,.30) 34%,
+      rgba(16,43,58,0) 62%),
+    linear-gradient(180deg,
+      rgba(16,43,58,.96) 0%,
+      rgba(16,43,58,.94) 30%,
+      rgba(16,43,58,.86) 40%,
+      rgba(16,43,58,.20) 47%,
+      rgba(16,43,58,.03) 64%,
+      rgba(16,43,58,.08) 100%);
+}
+.p2-ground{
+  position:absolute;left:0;right:0;top:60%;bottom:0;
+  background:linear-gradient(180deg,#102B3A 0%,#0B212D 100%);
+  -webkit-print-color-adjust:exact;print-color-adjust:exact;
+}
+.p2-ground::before{
+  content:"";position:absolute;left:0;right:0;top:0;height:.35mm;
+  background:rgba(220,232,237,.22);
+}
+.p2-ground::after{
+  content:"";position:absolute;top:0;height:1mm;
+  left:calc(var(--bleed) + var(--margin));width:34mm;
+  background:var(--orange);border-radius:0 0 1mm 1mm;
+}
+.p2-head{position:absolute;left:0;right:0;top:0}
+.p2-head .pagelabel{margin-bottom:10mm}
+.p2-head .kicker{margin-bottom:5mm}
+.p2-head .display{max-width:148mm;margin-bottom:8mm}
+.condition{
+  max-width:132mm;
+  background:rgba(16,43,58,.80);
+  border-radius:0 var(--r) var(--r) 0;
+  border-left:1.1mm solid var(--orange);
+  padding:5.4mm 6.5mm 5.6mm;
+}
+.condition p{font-family:var(--body);font-weight:400;font-size:8.7pt;line-height:1.58;color:var(--pale)}
+
+.p2-lower{position:absolute;left:0;right:0;top:173mm}
+.statement{
+  display:grid;grid-template-columns:1.3fr 1fr;gap:0 11mm;align-items:end;
+  padding-bottom:7.5mm;margin-bottom:8mm;
+  border-bottom:.3mm solid rgba(220,232,237,.26);
+}
+.statement .microlabel{margin-bottom:4.5mm}
+.statement h2{
+  font-family:var(--display);font-weight:700;font-size:16.5pt;line-height:1.18;
+  letter-spacing:-.02em;color:var(--white);
+}
+.statement .body{padding-bottom:1.2mm}
+
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:5.5mm}
+.card{
+  background:rgba(255,255,255,.09);
+  border:.3mm solid rgba(220,232,237,.22);
+  border-radius:var(--r);
+  padding:6.8mm 6mm 7.2mm;
+  display:flex;flex-direction:column;
+  position:relative;
+}
+.card .n{
+  font-family:var(--display);font-weight:700;font-size:21pt;line-height:1;
+  letter-spacing:-.028em;color:var(--orange);margin-bottom:4.8mm;white-space:nowrap;
+}
+.card h3{
+  font-family:var(--display);font-weight:600;font-size:9.6pt;line-height:1.28;
+  letter-spacing:-.008em;color:var(--white);margin-bottom:3.2mm;
+}
+.card p{font-family:var(--body);font-weight:400;font-size:8pt;line-height:1.5;color:var(--pale)}
+
+/* ==========================================================================
+   PAGE 3 — Who it is for & how it works
+   The campus is left legible under the Generation blue rather than buried.
+   ========================================================================== */
+.scrim--how{
+  background:
+    linear-gradient(180deg,
+      rgba(16,43,58,.92) 0%,
+      rgba(16,43,58,.82) 16%,
+      rgba(0,92,134,.58) 30%,
+      rgba(0,92,134,.50) 55%,
+      rgba(0,92,134,.62) 78%,
+      rgba(16,43,58,.86) 100%),
+    linear-gradient(0deg,rgba(0,118,174,.22),rgba(0,118,174,.22));
+}
+.p3-head{position:absolute;left:0;right:0;top:0}
+.p3-head .pagelabel{margin-bottom:9mm}
+.p3-head .kicker{margin-bottom:5mm}
+.p3-head .display{max-width:150mm;margin-bottom:6.5mm}
+.p3-head .lede{max-width:130mm}
+
+.split{
+  position:absolute;left:0;right:0;top:84mm;
+  display:grid;grid-template-columns:1fr 1fr;gap:5.5mm;height:58mm;
+}
+.tile-img{
+  border-radius:var(--r);overflow:hidden;
+  background-size:cover;background-position:50% 34%;
+  background-color:var(--deep);
+  -webkit-print-color-adjust:exact;print-color-adjust:exact;
+}
+.tile-light{
+  background:var(--white);
+  border-radius:var(--r);
+  padding:7.5mm 7mm;
+  display:flex;flex-direction:column;justify-content:center;
+  -webkit-print-color-adjust:exact;print-color-adjust:exact;
+}
+.tile-light .microlabel{margin-bottom:4.5mm}
+.tile-light h2{
+  font-family:var(--display);font-weight:700;font-size:15pt;line-height:1.18;
+  letter-spacing:-.02em;color:var(--ink);margin-bottom:4.5mm;
+}
+.tile-light p{font-family:var(--body);font-weight:400;font-size:8.5pt;line-height:1.56;color:var(--slate)}
+
+.steps{
+  position:absolute;left:0;right:0;top:150mm;
+  display:grid;grid-template-columns:repeat(3,1fr);gap:5.5mm;
+}
+.step{
+  background:rgba(255,255,255,.13);
+  border:.3mm solid rgba(255,255,255,.26);
+  border-radius:var(--r);
+  padding:6mm 5.6mm 6.4mm;
+}
+.step .n{
+  display:inline-block;
+  font-family:var(--display);font-weight:700;font-size:11pt;line-height:1;
+  letter-spacing:-.01em;color:var(--white);
+  background:var(--orange);
+  border-radius:var(--r-pill);
+  padding:2.6mm 4.6mm 2.2mm;
+  margin-bottom:5mm;
+  -webkit-print-color-adjust:exact;print-color-adjust:exact;
+}
+.step h3{
+  font-family:var(--display);font-weight:600;font-size:9.8pt;line-height:1.28;
+  letter-spacing:-.008em;color:var(--white);margin-bottom:3.2mm;
+}
+.step p{font-family:var(--body);font-weight:400;font-size:8.1pt;line-height:1.5;color:var(--pale)}
+
+.safeguard{
+  position:absolute;left:0;right:0;top:212mm;
+  background:var(--offwhite);
+  border-radius:0 var(--r) var(--r) 0;
+  border-left:1.6mm solid var(--orange);
+  padding:8mm 9mm 8.5mm;
+  -webkit-print-color-adjust:exact;print-color-adjust:exact;
+}
+.safeguard h2{
+  font-family:var(--label);font-weight:600;font-size:8.2pt;line-height:1.4;
+  letter-spacing:.19em;text-transform:uppercase;color:var(--ink);margin-bottom:4.2mm;
+}
+.safeguard p{
+  font-family:var(--display);font-weight:600;font-size:12pt;line-height:1.4;
+  letter-spacing:-.015em;color:var(--deep);max-width:152mm;
+}
+
+/* ==========================================================================
+   PAGE 4 — Print-first call to action
+   ========================================================================== */
+.scrim--cta{
+  background:
+    linear-gradient(100deg,
+      rgba(16,43,58,.60) 0%,
+      rgba(16,43,58,.34) 40%,
+      rgba(16,43,58,0) 72%),
+    linear-gradient(180deg,
+      rgba(16,43,58,.78) 0%,
+      rgba(16,43,58,.56) 16%,
+      rgba(16,43,58,.50) 34%,
+      rgba(16,43,58,.58) 52%,
+      rgba(16,43,58,.66) 74%,
+      rgba(11,33,45,.74) 100%);
+}
+.p4-head{position:absolute;left:0;right:0;top:34mm}
+.p4-head .pagelabel{margin-bottom:9mm}
+.p4-head .kicker{margin-bottom:5mm}
+.p4-head .display{max-width:146mm;margin-bottom:6.5mm}
+.p4-head .lede{max-width:152mm}
+
+.qrcard{
+  position:absolute;left:0;right:0;top:112mm;
+  min-height:90mm;
+  background:var(--white);
+  border-radius:var(--r);
+  display:grid;grid-template-columns:68mm 1fr;gap:8mm;
+  padding:10mm;
+  -webkit-print-color-adjust:exact;print-color-adjust:exact;
+}
+.qrblock{display:flex;flex-direction:column;align-items:center;justify-content:center}
+/* Displayed at 58 x 58 mm — above the 55 mm minimum — pure white ground,
+   full quiet zone, no tint, crop, rotation or texture. Do not restyle. */
+.qrblock .qrimg{width:58mm;height:58mm;display:block;background:#fff}
+.qrblock .instruction{
+  margin-top:5.5mm;
+  font-family:var(--label);font-weight:600;font-size:6.5pt;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--orange);
+  text-align:center;white-space:nowrap;
+}
+.qrtext{display:flex;flex-direction:column;justify-content:center;padding-right:1mm}
+.qrtext .microlabel{margin-bottom:4.5mm}
+.qrtext h2{
+  font-family:var(--display);font-weight:700;font-size:20pt;line-height:1.14;
+  letter-spacing:-.024em;color:var(--ink);margin-bottom:5.5mm;
+}
+.qrtext .keyline{width:20mm;height:.9mm;border-radius:1mm;background:var(--orange);margin-bottom:5.5mm}
+.qrtext p{font-family:var(--body);font-weight:400;font-size:9pt;line-height:1.56;color:var(--slate)}
+
+.contact{
+  position:absolute;left:0;right:0;bottom:13mm;
+  background:rgba(255,255,255,.08);
+  border:.3mm solid rgba(220,232,237,.22);
+  border-radius:var(--r);
+  padding:7mm 8mm 7.4mm;
+  display:grid;grid-template-columns:auto 1fr;gap:0 12mm;align-items:center;
+}
+.contact .who .name{
+  font-family:var(--display);font-weight:700;font-size:13pt;line-height:1.2;
+  letter-spacing:-.015em;color:var(--white);display:block;margin-bottom:2.6mm;
+}
+.contact .who .role{
+  font-family:var(--label);font-weight:600;font-size:7.4pt;letter-spacing:.11em;
+  color:var(--orange);display:block;
+}
+.contact .reach{
+  font-family:var(--body);font-weight:500;font-size:8.8pt;line-height:1.7;
+  color:var(--pale);text-align:right;
+}
+.contact .reach .sep{color:var(--orange);padding:0 1.4mm}
