@@ -189,6 +189,77 @@ function MonthPicker({ months }) {
   );
 }
 
+function formatPausedDate(iso) {
+  return new Date(iso).toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" });
+}
+
+// Players currently paused (see pausedPlayersOf in lib/aggregate.js) —
+// distinct from B-less, which only counts a real "End my membership".
+// Search-filtered like the roster's By-school/By-coach pickers, since this
+// list can run to dozens of names.
+function PausedPlayers({ pausedPlayers }) {
+  const [query, setQuery] = useState("");
+  const rows = pausedPlayers || [];
+
+  if (rows.length === 0) {
+    return <div className="empty-state">No currently paused players.</div>;
+  }
+
+  const filtered = query
+    ? rows.filter((r) => r.name.toLowerCase().includes(query.toLowerCase()))
+    : rows;
+
+  return (
+    <div>
+      <p className="section-subtitle">
+        Each player&apos;s most recent B-less-form submission where they selected &quot;Pause
+        Account&quot; without also ending their membership. The form has no separate &quot;back
+        from pause&quot; signal, so a player only drops off this list once they submit the form
+        again with &quot;End my membership&quot; — if someone has simply returned to sessions,
+        this list won&apos;t know that on its own.
+      </p>
+      <input
+        className="name-search"
+        type="text"
+        placeholder="Search paused players…"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+      />
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Player</th>
+              <th>Venue</th>
+              <th>Region</th>
+              <th>Paused since</th>
+              <th>Reason given</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((r) => (
+              <tr key={r.name}>
+                <td>{r.name}</td>
+                <td>{r.venue || "—"}</td>
+                <td>{REGION_LABELS[r.region] || r.region}</td>
+                <td>{formatPausedDate(r.pausedAt)}</td>
+                <td>{r.reason || "—"}</td>
+              </tr>
+            ))}
+            {filtered.length === 0 && (
+              <tr>
+                <td colSpan={5} className="kpi-sub">
+                  No matches.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export default function EnrolmentBoard({ data }) {
   const months = data.months || [];
 
@@ -245,6 +316,12 @@ export default function EnrolmentBoard({ data }) {
       label: "Trial outcomes",
       description: "What happened to every intention",
       render: () => <BreakdownList title="Trial outcomes" items={data.trialOutcomes || []} />,
+    },
+    {
+      key: "paused-players",
+      label: "Currently paused",
+      description: "Players who paused their account — separate from B-less",
+      render: () => <PausedPlayers pausedPlayers={data.pausedPlayers} />,
     },
     {
       key: "daily",
