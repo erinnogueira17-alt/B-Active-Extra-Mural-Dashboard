@@ -85,3 +85,44 @@ export async function POST(request) {
 
   return NextResponse.json({ ok: true, entry });
 }
+
+// Deletes one coach's saved score for one period — whether it was entered
+// by hand or came in through a report import, both live as the same kind
+// of entry in this blob, so both are deleted the same way.
+export async function DELETE(request) {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    return NextResponse.json({ ok: false, error: "Vercel Blob not configured" }, { status: 500 });
+  }
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ ok: false, error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const { coach, periodType, periodKey } = body || {};
+  if (!coach || !periodType || !periodKey) {
+    return NextResponse.json(
+      { ok: false, error: "Missing coach, periodType, or periodKey" },
+      { status: 400 }
+    );
+  }
+
+  const id = `${periodType}:${periodKey}:${coach}`;
+  const entries = await readEntries();
+  if (!entries.some((e) => e.id === id)) {
+    return NextResponse.json({ ok: false, error: "No matching entry found" }, { status: 404 });
+  }
+
+  const nextEntries = entries.filter((e) => e.id !== id);
+  await put(BLOB_KEY, JSON.stringify({ entries: nextEntries }, null, 2), {
+    access: "public",
+    addRandomSuffix: false,
+    allowOverwrite: true,
+    contentType: "application/json",
+    cacheControlMaxAge: 0,
+  });
+
+  return NextResponse.json({ ok: true, id });
+}
