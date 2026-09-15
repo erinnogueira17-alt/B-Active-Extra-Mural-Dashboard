@@ -226,7 +226,7 @@ function EntryForm({ coaches, periodType, periodKey, entries, onSaved }) {
 // every period. Coaches come from the union of the current roster and
 // anyone with scorecard history but no longer on it, so past scores for a
 // coach who's since left never just disappear from view.
-function ByCoach({ coaches, entries }) {
+function ByCoach({ coaches, entries, onDelete }) {
   const [selected, setSelected] = useState(null);
   const [query, setQuery] = useState("");
 
@@ -262,6 +262,7 @@ function ByCoach({ coaches, entries }) {
                   <th>% Score (rated only)</th>
                   <th>% Score (all categories)</th>
                   <th>Performance band</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
@@ -275,6 +276,11 @@ function ByCoach({ coaches, entries }) {
                     <td>{formatPct(h.pctRatedOnly)}</td>
                     <td>{formatPct(h.pctAllCategories)}</td>
                     <td>{h.band}</td>
+                    <td>
+                      <button className="back-link" onClick={() => onDelete(h)} type="button">
+                        Delete
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -320,7 +326,7 @@ function ByCoach({ coaches, entries }) {
 // Every coach already scored for the selected period, plus the team
 // average — same shape as the workbook's own results table and Team
 // Average row.
-function ResultsTable({ entries, periodType, periodKey }) {
+function ResultsTable({ entries, periodType, periodKey, onDelete }) {
   const rows = entries
     .filter((e) => e.periodType === periodType && e.periodKey === periodKey)
     .sort((a, b) => a.coach.localeCompare(b.coach));
@@ -351,6 +357,7 @@ function ResultsTable({ entries, periodType, periodKey }) {
               <th>% Score (rated only)</th>
               <th>% Score (all categories)</th>
               <th>Performance band</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -362,6 +369,11 @@ function ResultsTable({ entries, periodType, periodKey }) {
                 <td>{formatPct(r.pctRatedOnly)}</td>
                 <td>{formatPct(r.pctAllCategories)}</td>
                 <td>{r.band}</td>
+                <td>
+                  <button className="back-link" onClick={() => onDelete(r)} type="button">
+                    Delete
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -384,7 +396,7 @@ function ResultsTable({ entries, periodType, periodKey }) {
 // lib/currentStateAggregate.js already does for the roster sheet, then
 // saves every coach it finds as their score for the selected period —
 // same effect as entering them one by one, just from a file instead.
-function ImportReport({ periodType, periodKey, onChangeType, onChangeKey, onImported }) {
+function ImportReport({ periodType, periodKey, onChangeType, onChangeKey, onImported, onDeleteMany }) {
   const [file, setFile] = useState(null);
   const [status, setStatus] = useState("idle"); // idle | uploading | done | error
   const [error, setError] = useState("");
@@ -409,6 +421,15 @@ function ImportReport({ periodType, periodKey, onChangeType, onChangeKey, onImpo
     } catch (err) {
       setError(err.message || "Import failed");
       setStatus("error");
+    }
+  }
+
+  async function handleDeleteImport() {
+    const deleted = await onDeleteMany(result);
+    if (deleted) {
+      setResult(null);
+      setStatus("idle");
+      setFile(null);
     }
   }
 
@@ -463,6 +484,14 @@ function ImportReport({ periodType, periodKey, onChangeType, onChangeKey, onImpo
             Saved {result.length} coach{result.length === 1 ? "" : "es"} for{" "}
             {formatPeriodLabel(periodType, periodKey)}
           </p>
+          <button
+            type="button"
+            className="back-link"
+            style={{ marginBottom: "0.75rem" }}
+            onClick={handleDeleteImport}
+          >
+            Delete this import ({result.length})
+          </button>
           <div className="table-wrap">
             <table>
               <thead>
@@ -516,6 +545,56 @@ export default function CoachScorecardBoard({ data, coaches }) {
     });
   }
 
+  // Shared by every delete button on this board — whether an entry was
+  // typed in by hand or came from a report import, both are the same kind
+  // of saved entry, deleted the same way. Returns whether it actually
+  // happened, so a caller with its own local copy of the entry (the Import
+  // report's result panel) knows whether to clear it too.
+  async function deleteEntry(entry) {
+    const res = await fetch("/api/scorecard", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ coach: entry.coach, periodType: entry.periodType, periodKey: entry.periodKey }),
+    });
+    const body = await res.json().catch(() => ({ ok: false }));
+    if (!body.ok) throw new Error(body.error || "Delete failed");
+    setEntries((prev) => prev.filter((e) => e.id !== entry.id));
+  }
+
+  async function handleDelete(entry) {
+    if (
+      !window.confirm(
+        `Delete ${entry.coach}'s score for ${formatPeriodLabel(entry.periodType, entry.periodKey)}? This can't be undone.`
+      )
+    ) {
+      return false;
+    }
+    try {
+      await deleteEntry(entry);
+      return true;
+    } catch (err) {
+      window.alert(err.message || "Delete failed");
+      return false;
+    }
+  }
+
+  async function handleDeleteMany(entriesToDelete) {
+    if (!entriesToDelete || entriesToDelete.length === 0) return false;
+    const n = entriesToDelete.length;
+    if (!window.confirm(`Delete all ${n} score${n === 1 ? "" : "s"} from that import? This can't be undone.`)) {
+      return false;
+    }
+    try {
+      for (const entry of entriesToDelete) {
+        await deleteEntry(entry);
+      }
+      return true;
+    } catch (err) {
+      window.alert(err.message || "Delete failed");
+      return false;
+    }
+  }
+
   const topics = [
     {
       key: "enter-scores",
@@ -551,7 +630,12 @@ export default function CoachScorecardBoard({ data, coaches }) {
             onChangeType={handleChangeType}
             onChangeKey={setPeriodKey}
           />
-          <ResultsTable entries={entries} periodType={periodType} periodKey={periodKey} />
+          <ResultsTable
+            entries={entries}
+            periodType={periodType}
+            periodKey={periodKey}
+            onDelete={handleDelete}
+          />
         </div>
       ),
     },
@@ -559,7 +643,7 @@ export default function CoachScorecardBoard({ data, coaches }) {
       key: "by-coach",
       label: "By coach",
       description: "One tile per coach — click through for their full score history",
-      render: () => <ByCoach coaches={coaches} entries={entries} />,
+      render: () => <ByCoach coaches={coaches} entries={entries} onDelete={handleDelete} />,
     },
     {
       key: "import-report",
@@ -572,6 +656,7 @@ export default function CoachScorecardBoard({ data, coaches }) {
           onChangeType={handleChangeType}
           onChangeKey={setPeriodKey}
           onImported={handleImported}
+          onDeleteMany={handleDeleteMany}
         />
       ),
     },
