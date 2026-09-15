@@ -193,35 +193,78 @@ function formatPausedDate(iso) {
   return new Date(iso).toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" });
 }
 
+function monthLabelOf(key) {
+  const [year, month] = key.split("-");
+  const d = new Date(Date.UTC(Number(year), Number(month) - 1, 1));
+  return d.toLocaleDateString("en-ZA", { month: "long", year: "numeric", timeZone: "UTC" });
+}
+
+// Buckets each paused player by the calendar month of their pausedAt date
+// (real, per-player — see pausedPlayersOf in lib/aggregate.js), most recent
+// month first, each player sorted newest-first within their month.
+function groupPausedByMonth(pausedPlayers) {
+  const byMonth = new Map();
+  for (const p of pausedPlayers || []) {
+    const key = p.pausedAt.slice(0, 7);
+    if (!byMonth.has(key)) byMonth.set(key, []);
+    byMonth.get(key).push(p);
+  }
+  return [...byMonth.entries()]
+    .map(([key, players]) => ({
+      key,
+      label: monthLabelOf(key),
+      players: [...players].sort((a, b) => (a.pausedAt < b.pausedAt ? 1 : -1)),
+    }))
+    .sort((a, b) => (a.key < b.key ? 1 : -1));
+}
+
 // Players currently paused (see pausedPlayersOf in lib/aggregate.js) —
 // distinct from B-less, which only counts a real "End my membership".
-// Search-filtered like the roster's By-school/By-coach pickers, since this
-// list can run to dozens of names.
+// Grouped by the month they paused in, since that's naturally how someone
+// would look this up ("who paused in August?") — click a month to see that
+// month's names, same pill pattern as By-month above.
 function PausedPlayers({ pausedPlayers }) {
+  const months = groupPausedByMonth(pausedPlayers);
+  const [selectedKey, setSelectedKey] = useState(months[0]?.key || "");
   const [query, setQuery] = useState("");
-  const rows = pausedPlayers || [];
 
-  if (rows.length === 0) {
+  if (months.length === 0) {
     return <div className="empty-state">No currently paused players.</div>;
   }
 
+  const selected = months.find((m) => m.key === selectedKey) || months[0];
   const filtered = query
-    ? rows.filter((r) => r.name.toLowerCase().includes(query.toLowerCase()))
-    : rows;
+    ? selected.players.filter((r) => r.name.toLowerCase().includes(query.toLowerCase()))
+    : selected.players;
 
   return (
     <div>
       <p className="section-subtitle">
         Each player&apos;s most recent B-less-form submission where they selected &quot;Pause
-        Account&quot; without also ending their membership. The form has no separate &quot;back
-        from pause&quot; signal, so a player only drops off this list once they submit the form
-        again with &quot;End my membership&quot; — if someone has simply returned to sessions,
-        this list won&apos;t know that on its own.
+        Account&quot; without also ending their membership, grouped by the month they paused in.
+        The form has no separate &quot;back from pause&quot; signal, so a player only drops off
+        this list once they submit the form again with &quot;End my membership&quot; — if
+        someone has simply returned to sessions, this list won&apos;t know that on its own.
       </p>
+      <div className="name-pill-list" style={{ marginBottom: "1.25rem" }}>
+        {months.map((m) => (
+          <button
+            key={m.key}
+            className={`name-pill${selected.key === m.key ? " active" : ""}`}
+            onClick={() => {
+              setSelectedKey(m.key);
+              setQuery("");
+            }}
+            type="button"
+          >
+            {m.label} ({m.players.length})
+          </button>
+        ))}
+      </div>
       <input
         className="name-search"
         type="text"
-        placeholder="Search paused players…"
+        placeholder={`Search paused players in ${selected.label}…`}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
