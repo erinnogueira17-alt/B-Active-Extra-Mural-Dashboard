@@ -198,6 +198,10 @@ async function fetchYearCombinedRows(spreadsheetId) {
     // enough substring that it won't collide with "Estimated duration of
     // your Membership?", which is a different field on the same sheet.
     const membershipActionKey = findHeaderKey(headers, "like to do with your membership");
+    // Player name, used to identify individual currently-paused players (see
+    // pausedPlayersOf in lib/aggregate.js). Confirmed directly against the
+    // sheet: "Players name and surname ?" on the B-less form.
+    const playerNameKey = findHeaderKey(headers, "name and surname");
     for (const row of tabRows) {
       row.__timestamp = resolved ? toIsoDate(row[resolved.key], resolved.dayFirst) : undefined;
       row.__venue = venueKey ? row[venueKey] : undefined;
@@ -205,6 +209,7 @@ async function fetchYearCombinedRows(spreadsheetId) {
       row.__reason = reasonKey ? row[reasonKey] : undefined;
       row.__package = packageKey ? row[packageKey] : undefined;
       row.__membershipAction = membershipActionKey ? row[membershipActionKey] : undefined;
+      row.__playerName = playerNameKey ? row[playerNameKey] : undefined;
     }
     rows.push(...tabRows);
     perTab.push({
@@ -240,6 +245,7 @@ async function fetchYearCombinedRows(spreadsheetId) {
       packageKey,
       membershipActionKey,
       membershipActionSamples: sampleVenueValues(tabRows, membershipActionKey),
+      playerNameKey,
     });
   }
   return { rows, allTabs: tabs, chosenTabs: targets, perTab };

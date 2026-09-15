@@ -103,5 +103,6 @@
     "monthVsMonth": null,
     "weekVsWeek": null,
     "yearOverYear": null
-  }
+  },
+  "pausedPlayers": []
 }
