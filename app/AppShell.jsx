@@ -6,6 +6,7 @@ import EnrolmentBoard from "./EnrolmentBoard.jsx";
 import CurrentStateBoard from "./CurrentStateBoard.jsx";
 import CoachScorecardBoard from "./CoachScorecardBoard.jsx";
 import LandingSummary from "./LandingSummary.jsx";
+import GlobalSearch from "./GlobalSearch.jsx";
 
 const BOARDS = [
   {
@@ -130,6 +131,10 @@ export default function AppShell({ growth, currentState, currentStateHistory, co
 
       {!board && (
         <div className="landing-page">
+          <section className="section">
+            <h2 className="section-title">Search</h2>
+            <GlobalSearch currentState={currentState.data} growth={growth.data} onNavigate={setBoard} />
+          </section>
           <section className="section">
             <h2 className="section-title">Basic information</h2>
             <LandingSummary growth={growth} currentState={currentState} />

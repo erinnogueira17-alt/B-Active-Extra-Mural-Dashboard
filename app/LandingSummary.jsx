@@ -4,6 +4,8 @@
 // Deeper detail (comparisons, per-school, daily calendar browsing, etc.)
 // lives one click down in the board tiles below this.
 
+import { LossValue } from "./CompareBlock.jsx";
+
 // South Africa Standard Time is a fixed UTC+2 year-round (no DST). Every
 // row's __timestamp — and every daily/monthly key built from it in
 // lib/aggregate.js — stores the sheet's own SAST wall-clock numbers *as if*
@@ -47,7 +49,11 @@ function seasonTotals(months) {
   );
 }
 
-function MetricRow({ title, metricKey, day, month, year }) {
+function MetricRow({ title, metricKey, day, month, year, isLoss }) {
+  const todayVal = day ? day[metricKey] ?? 0 : 0;
+  const monthVal = month ? month[metricKey] : null;
+  const yearVal = year[metricKey];
+
   return (
     <div className="card">
       <h3 className="section-title" style={{ marginBottom: "0.75rem" }}>
@@ -56,15 +62,17 @@ function MetricRow({ title, metricKey, day, month, year }) {
       <div className="kpi-grid">
         <div className="kpi-card">
           <p className="kpi-label">Today</p>
-          <div className="kpi-value">{day ? (day[metricKey] ?? 0) : 0}</div>
+          <div className="kpi-value">{isLoss ? <LossValue value={todayVal} /> : todayVal}</div>
         </div>
         <div className="kpi-card">
           <p className="kpi-label">This month</p>
-          <div className="kpi-value">{month ? (month[metricKey] ?? "—") : "—"}</div>
+          <div className="kpi-value">
+            {monthVal == null ? "—" : isLoss ? <LossValue value={monthVal} /> : monthVal}
+          </div>
         </div>
         <div className="kpi-card">
           <p className="kpi-label">This season</p>
-          <div className="kpi-value">{year[metricKey]}</div>
+          <div className="kpi-value">{isLoss ? <LossValue value={yearVal} /> : yearVal}</div>
         </div>
       </div>
     </div>
@@ -115,7 +123,7 @@ export default function LandingSummary({ growth, currentState }) {
 
       <div className="card-grid" style={{ marginTop: "1.25rem" }}>
         <MetricRow title="Enrolments" metricKey="enrolments" day={day} month={month} year={year} />
-        <MetricRow title="B-less" metricKey="bless" day={day} month={month} year={year} />
+        <MetricRow title="B-less" metricKey="bless" day={day} month={month} year={year} isLoss />
         <MetricRow title="Intentions" metricKey="intentions" day={day} month={month} year={year} />
       </div>
     </div>

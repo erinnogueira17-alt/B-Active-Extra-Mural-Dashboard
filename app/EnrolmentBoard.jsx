@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BreakdownList, PeriodCompare } from "./CompareBlock.jsx";
+import { BreakdownList, PeriodCompare, LossValue } from "./CompareBlock.jsx";
 import TopicBoard from "./TopicBoard.jsx";
 
 // Order and labels for the region breakdown. Football/Soccer is
@@ -42,7 +42,9 @@ function RegionBreakdown({ regionTotals }) {
             </h3>
             <p className="kpi-sub">Intentions: {r.intentions || 0}</p>
             <p className="kpi-sub">Enrolments: {r.enrolments || 0}</p>
-            <p className="kpi-sub">B-less: {r.bless || 0}</p>
+            <p className="kpi-sub">
+              B-less: <LossValue value={r.bless || 0} />
+            </p>
           </div>
         ))}
       </div>
@@ -64,8 +66,8 @@ function MetricKpis({ intentions, enrolments, bless, note }) {
         {enrolments == null && <p className="kpi-sub">{note}</p>}
       </div>
       <div className="kpi-card">
-        <p className="kpi-label">B-less</p>
-        <div className="kpi-value">{bless ?? "—"}</div>
+        <p className="kpi-label">B-less (players lost)</p>
+        <div className="kpi-value">{bless == null ? "—" : <LossValue value={bless} />}</div>
         {bless == null && <p className="kpi-sub">{note}</p>}
       </div>
     </div>

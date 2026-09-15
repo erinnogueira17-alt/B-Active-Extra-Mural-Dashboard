@@ -1,6 +1,6 @@
 "use client";
 
-import { PeriodCompare, GrowthTracker } from "./CompareBlock.jsx";
+import { PeriodCompare, GrowthTracker, LossValue } from "./CompareBlock.jsx";
 import TopicBoard from "./TopicBoard.jsx";
 
 function formatCurrency(n) {
@@ -79,7 +79,9 @@ export default function OverviewBoard({ growth, currentState }) {
               </div>
               <div className="kpi-card">
                 <p className="kpi-label">B-less</p>
-                <div className="kpi-value">{latestMonth.bless ?? "—"}</div>
+                <div className="kpi-value">
+                  {latestMonth.bless == null ? "—" : <LossValue value={latestMonth.bless} />}
+                </div>
               </div>
             </div>
             <p className="section-subtitle" style={{ marginTop: "1.5rem" }}>
@@ -96,7 +98,9 @@ export default function OverviewBoard({ growth, currentState }) {
               </div>
               <div className="kpi-card">
                 <p className="kpi-label">B-less</p>
-                <div className="kpi-value">{seasonTotals.bless}</div>
+                <div className="kpi-value">
+                  <LossValue value={seasonTotals.bless} />
+                </div>
               </div>
             </div>
           </>
