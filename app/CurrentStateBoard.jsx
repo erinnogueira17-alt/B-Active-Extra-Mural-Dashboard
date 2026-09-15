@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import TopicBoard from "./TopicBoard.jsx";
+import { LossValue } from "./CompareBlock.jsx";
 
 // Football/Soccer is intentionally absent here — the business only wants
 // Johannesburg/Cape Town extramural on this board, and aggregateCurrentState
@@ -151,16 +152,16 @@ const RECONCILE_METRICS = [
   { key: "payingPlayers", label: "Paying players only" },
 ];
 
-// For each consecutive pair of real roster snapshots, compares the roster's
-// actual change (in whichever metric was selected) against what the same
-// window's real Enrolments minus B-less would predict, plus a running
-// cumulative gap. Sums every funnel day strictly between the two snapshot
-// dates (not just one day) so a missed sync (a gap in `history`) still
-// reconciles correctly instead of silently attributing several days of
-// funnel activity to the wrong single day. A real, nonzero gap isn't a bug
-// in either sync — it means the roster sheet was edited directly (a
-// correction, a manual removal, a duplicate cleanup) rather than through
-// either form.
+// For each consecutive pair of real roster snapshots, sums that window's
+// real Enrolments and B-less separately (shown as their own columns rather
+// than a combined net) and carries forward a running cumulative gap between
+// the roster's actual change and what Enrolments minus B-less predicted.
+// Sums every funnel day strictly between the two snapshot dates (not just
+// one day) so a missed sync (a gap in `history`) still reconciles correctly
+// instead of silently attributing several days of funnel activity to the
+// wrong single day. A real, nonzero gap isn't a bug in either sync — it
+// means the roster sheet was edited directly (a correction, a manual
+// removal, a duplicate cleanup) rather than through either form.
 function reconcileHistory(history, dailyFunnel, metricKey) {
   const sorted = [...(history || [])].sort((a, b) => (a.date < b.date ? -1 : 1));
   if (sorted.length < 2) return [];
@@ -173,17 +174,15 @@ function reconcileHistory(history, dailyFunnel, metricKey) {
     const prev = sorted[i - 1];
     const curr = sorted[i];
     const actualChange = curr.totals[metricKey] - prev.totals[metricKey];
-    const funnelNet = funnelDays
-      .filter((d) => d.key > prev.date && d.key <= curr.date)
-      .reduce((sum, d) => sum + (d.enrolments || 0) - (d.bless || 0), 0);
-    const gap = actualChange - funnelNet;
-    cumulativeGap += gap;
+    const windowDays = funnelDays.filter((d) => d.key > prev.date && d.key <= curr.date);
+    const enrolments = windowDays.reduce((sum, d) => sum + (d.enrolments || 0), 0);
+    const bless = windowDays.reduce((sum, d) => sum + (d.bless || 0), 0);
+    cumulativeGap += actualChange - (enrolments - bless);
     rows.push({
       date: curr.date,
       roster: curr.totals[metricKey],
-      actualChange,
-      funnelNet,
-      gap,
+      enrolments,
+      bless,
       cumulativeGap,
     });
   }
@@ -240,10 +239,10 @@ function ReconciliationTable({ rows, metric, expanded, onToggle }) {
   return (
     <div>
       <p className="section-subtitle">
-        Each day&apos;s actual change in {metric.label.toLowerCase()} vs. what that same
-        day&apos;s real Enrolments minus B-less predicted, plus the running total of the
-        difference. A nonzero gap usually means the roster sheet was edited directly rather than
-        through either form.
+        {metric.label} on the roster, alongside that same window&apos;s real Enrolments and
+        B-less, plus the running total of the difference between the roster&apos;s actual change
+        and what Enrolments minus B-less predicted. A nonzero cumulative gap usually means the
+        roster sheet was edited directly rather than through either form.
       </p>
       <div className="table-wrap">
         <table>
@@ -251,9 +250,8 @@ function ReconciliationTable({ rows, metric, expanded, onToggle }) {
             <tr>
               <th>Date</th>
               <th>Roster ({metric.label.toLowerCase()})</th>
-              <th>Roster change</th>
-              <th>Enrolments − B-less</th>
-              <th>Gap</th>
+              <th>Enrolments</th>
+              <th>B-less</th>
               <th>Cumulative gap</th>
             </tr>
           </thead>
@@ -262,9 +260,10 @@ function ReconciliationTable({ rows, metric, expanded, onToggle }) {
               <tr key={r.date}>
                 <td>{formatDate(r.date)}</td>
                 <td>{r.roster.toLocaleString()}</td>
-                <td className={deltaClass(r.actualChange)}>{signed(r.actualChange)}</td>
-                <td className={deltaClass(r.funnelNet)}>{signed(r.funnelNet)}</td>
-                <td className={deltaClass(r.gap)}>{signed(r.gap)}</td>
+                <td>{r.enrolments.toLocaleString()}</td>
+                <td>
+                  <LossValue value={r.bless} />
+                </td>
                 <td className={deltaClass(r.cumulativeGap)}>{signed(r.cumulativeGap)}</td>
               </tr>
             ))}
