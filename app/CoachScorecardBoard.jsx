@@ -19,6 +19,189 @@ function formatPct(n) {
   return n == null ? "—" : `${Math.round(n * 1000) / 10}%`;
 }
 
+// Performance bands share a small, fixed, reserved color scale by severity
+// (good/warning/serious/critical) rather than an arbitrary per-band hue —
+// the same color always means the same thing everywhere a chart on this
+// board shows a band, and it stays visually distinct from the app's own
+// accent red. Excellent and Good share the "good" step; there's no real
+// value in a fifth shade just to give every band its own color.
+const BAND_ORDER = ["Excellent", "Good", "Satisfactory", "Needs Improvement", "Poor", "Not rated"];
+const BAND_COLORS = {
+  Excellent: "#0ca30c",
+  Good: "#0ca30c",
+  Satisfactory: "#fab219",
+  "Needs Improvement": "#ec835a",
+  Poor: "#d03b3b",
+  "Not rated": "#a9a299",
+};
+
+function bandColor(band) {
+  return BAND_COLORS[band] || "#a9a299";
+}
+
+function truncateLabel(s, max) {
+  return s.length > max ? `${s.slice(0, max - 1)}…` : s;
+}
+
+// A colored-dot key for whichever bands actually appear in the chart above
+// it — never more than the six real bands, and never fewer than what's
+// shown, so color is never asked to carry meaning alone.
+function BandLegend({ bands }) {
+  const present = BAND_ORDER.filter((b) => bands.has(b));
+  if (present.length === 0) return null;
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.9rem", marginTop: "0.85rem" }}>
+      {present.map((b) => (
+        <span
+          key={b}
+          style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", fontSize: "0.8rem", color: "var(--text-muted)" }}
+        >
+          <span
+            style={{ width: 10, height: 10, borderRadius: "50%", background: bandColor(b), flexShrink: 0 }}
+          />
+          {b}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+// One bar per item, height = % Score (rated only), colored by performance
+// band — used both to compare every coach for one period (Team results)
+// and to compare one coach across every period (By coach), so "does this
+// go up or down" reads the same way in both places. Only rated items plot
+// (a null % has no bar height to draw); square baseline, rounded top per
+// the bar mark spec, with the value directly labeled above each bar so no
+// separate axis is needed.
+function ScoreBarChart({ items, ariaLabel }) {
+  const rated = items.filter((i) => i.pct != null);
+  if (rated.length === 0) {
+    return <div className="empty-state">Not enough rated scores yet to chart.</div>;
+  }
+
+  const SLOT = 60;
+  const BAR_W = 24;
+  const CHART_H = 170;
+  const LABEL_H = 40;
+  const width = rated.length * SLOT;
+  const bandsPresent = new Set(rated.map((i) => i.band));
+
+  return (
+    <div>
+      <div className="table-wrap">
+        <svg
+          width={width}
+          height={CHART_H + LABEL_H}
+          viewBox={`0 0 ${width} ${CHART_H + LABEL_H}`}
+          role="img"
+          aria-label={ariaLabel}
+        >
+          <line x1={0} y1={CHART_H} x2={width} y2={CHART_H} stroke="#383835" strokeWidth={1} />
+          {rated.map((item, i) => {
+            const x = i * SLOT + (SLOT - BAR_W) / 2;
+            const h = Math.max(2, item.pct * (CHART_H - 24));
+            const yTop = CHART_H - h;
+            const r = Math.min(4, h / 2);
+            const path = `M ${x},${CHART_H} L ${x},${yTop + r} Q ${x},${yTop} ${x + r},${yTop} L ${x + BAR_W - r},${yTop} Q ${x + BAR_W},${yTop} ${x + BAR_W},${yTop + r} L ${x + BAR_W},${CHART_H} Z`;
+            return (
+              <g key={item.key}>
+                <title>
+                  {item.label}: {formatPct(item.pct)} ({item.band})
+                </title>
+                <path d={path} fill={bandColor(item.band)} />
+                <text x={x + BAR_W / 2} y={yTop - 6} textAnchor="middle" fontSize="11" fill="#c3c2b7">
+                  {Math.round(item.pct * 100)}%
+                </text>
+                <text x={x + BAR_W / 2} y={CHART_H + 16} textAnchor="middle" fontSize="10" fill="#898781">
+                  {truncateLabel(item.label, 9)}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+      <BandLegend bands={bandsPresent} />
+    </div>
+  );
+}
+
+// Part-to-whole is a genuinely good fit for this specific breakdown — a
+// handful of performance bands, short names, real counts — unlike the 10
+// long-named scorecard categories, which stays a table rather than
+// becoming a ten-slice pie. Slices are ordered and colored by the same
+// fixed band scale as the bar chart above.
+function BandPieChart({ bands, ariaLabel }) {
+  const total = bands.length;
+  if (total === 0) {
+    return <div className="empty-state">Not enough rated scores yet to chart.</div>;
+  }
+
+  const tally = new Map();
+  for (const band of bands) {
+    tally.set(band, (tally.get(band) || 0) + 1);
+  }
+  const slices = BAND_ORDER.filter((b) => tally.has(b)).map((b) => ({ band: b, count: tally.get(b) }));
+
+  const R = 78;
+  const CX = 150;
+  const CY = 116;
+  const WIDTH = 300;
+  const HEIGHT = 232;
+  let angle = -Math.PI / 2;
+  const drawn = slices.map((s) => {
+    const frac = s.count / total;
+    const sweep = frac * 2 * Math.PI;
+    const x1 = CX + R * Math.cos(angle);
+    const y1 = CY + R * Math.sin(angle);
+    const endAngle = angle + sweep;
+    const x2 = CX + R * Math.cos(endAngle);
+    const y2 = CY + R * Math.sin(endAngle);
+    const largeArc = sweep > Math.PI ? 1 : 0;
+    const mid = angle + sweep / 2;
+    const labelX = CX + (R + 24) * Math.cos(mid);
+    const labelY = CY + (R + 24) * Math.sin(mid);
+    const path = total === 1 ? null : `M ${CX},${CY} L ${x1},${y1} A ${R},${R} 0 ${largeArc} 1 ${x2},${y2} Z`;
+    angle = endAngle;
+    return { ...s, frac, path, labelX, labelY };
+  });
+
+  return (
+    <div>
+      <svg
+        width={WIDTH}
+        height={HEIGHT}
+        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+        role="img"
+        aria-label={ariaLabel}
+        style={{ overflow: "visible", maxWidth: "100%" }}
+      >
+        {total === 1 ? (
+          <circle cx={CX} cy={CY} r={R} fill={bandColor(drawn[0].band)} />
+        ) : (
+          drawn.map((s) => (
+            <path key={s.band} d={s.path} fill={bandColor(s.band)} stroke="#19191b" strokeWidth={2} />
+          ))
+        )}
+        {drawn
+          .filter((s) => s.frac >= 0.06)
+          .map((s) => (
+            <text
+              key={`label-${s.band}`}
+              x={s.labelX}
+              y={s.labelY}
+              textAnchor={s.labelX > CX + 2 ? "start" : s.labelX < CX - 2 ? "end" : "middle"}
+              fontSize="11"
+              fill="#c3c2b7"
+            >
+              {s.band} ({s.count})
+            </text>
+          ))}
+      </svg>
+      <BandLegend bands={new Set(slices.map((s) => s.band))} />
+    </div>
+  );
+}
+
 // Weekly/monthly period toggle plus the matching native picker — shared by
 // both topics below via lifted state, so switching from "Enter scores" to
 // "Team results" keeps looking at the same period instead of resetting it.
@@ -252,7 +435,24 @@ function ByCoach({ coaches, entries, onDelete }) {
         {history.length === 0 ? (
           <div className="empty-state">No scores recorded yet for {selected}.</div>
         ) : (
-          <div className="table-wrap">
+          <>
+            <div className="card" style={{ marginBottom: "1.75rem" }}>
+              <h3 className="section-title" style={{ marginBottom: "0.75rem", fontSize: "1.05rem" }}>
+                Score over time
+              </h3>
+              <ScoreBarChart
+                items={[...history]
+                  .sort((a, b) => (a.periodKey < b.periodKey ? -1 : 1))
+                  .map((h) => ({
+                    key: h.id,
+                    label: formatPeriodLabel(h.periodType, h.periodKey),
+                    pct: h.categoriesRated > 0 ? h.pctRatedOnly : null,
+                    band: h.band,
+                  }))}
+                ariaLabel={`${selected}'s % score by period`}
+              />
+            </div>
+            <div className="table-wrap">
             <table>
               <thead>
                 <tr>
@@ -285,7 +485,8 @@ function ByCoach({ coaches, entries, onDelete }) {
                 ))}
               </tbody>
             </table>
-          </div>
+            </div>
+          </>
         )}
       </div>
     );
@@ -344,9 +545,30 @@ function ResultsTable({ entries, periodType, periodKey, onDelete }) {
   const teamAvgPct =
     rated.length > 0 ? rated.reduce((sum, r) => sum + r.pctRatedOnly, 0) / rated.length : null;
 
+  const chartItems = rated
+    .slice()
+    .sort((a, b) => b.pctRatedOnly - a.pctRatedOnly)
+    .map((r) => ({ key: r.coach, label: r.coach, pct: r.pctRatedOnly, band: r.band }));
+
   return (
     <div>
       <p className="section-subtitle">{formatPeriodLabel(periodType, periodKey)}</p>
+
+      <div className="card-grid" style={{ marginBottom: "1.75rem" }}>
+        <div className="card">
+          <h3 className="section-title" style={{ marginBottom: "0.75rem", fontSize: "1.05rem" }}>
+            Every coach, this period
+          </h3>
+          <ScoreBarChart items={chartItems} ariaLabel="Every coach's % score this period" />
+        </div>
+        <div className="card">
+          <h3 className="section-title" style={{ marginBottom: "0.75rem", fontSize: "1.05rem" }}>
+            Performance band mix
+          </h3>
+          <BandPieChart bands={rated.map((r) => r.band)} ariaLabel="Share of coaches in each performance band" />
+        </div>
+      </div>
+
       <div className="table-wrap">
         <table>
           <thead>
