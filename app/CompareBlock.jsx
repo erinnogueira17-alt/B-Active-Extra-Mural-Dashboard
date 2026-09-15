@@ -11,6 +11,27 @@ const METRICS = [
   { key: "bless", label: "B-less" },
 ];
 
+// B-less is a real, negative business outcome — a lost player — unlike
+// Intentions/Enrolments, where "more" is a good thing. Every B-less number
+// on the dashboard renders through this: shown as a loss (red, prefixed
+// with "−" when nonzero) instead of a plain count that reads the same as a
+// gain. Zero stays neutral (muted grey) rather than green — no losses
+// isn't a "win" to celebrate, it's just the absence of one.
+export function LossValue({ value }) {
+  const n = value ?? 0;
+  if (n === 0) return <span className="delta-neutral">0</span>;
+  return <span className="delta-negative">−{n}</span>;
+}
+
+// For a change in one of the three metrics: "more" is good for Intentions/
+// Enrolments, but bad for B-less (more lost players). Used to color both a
+// raw delta and a % change consistently by metric.
+function deltaClassFor(key, delta) {
+  if (!delta) return "delta-neutral";
+  const isGood = key === "bless" ? delta < 0 : delta > 0;
+  return isGood ? "delta-positive" : "delta-negative";
+}
+
 // Builds the {previous, current, deltas} shape CompareBlock expects from
 // any two period entries (each needs a `label` plus the metric keys above).
 // Order is whatever the caller passes — "previous"/"current" here just mean
@@ -114,7 +135,9 @@ function YearlyTracker({ growth }) {
                 <td>{r.label}</td>
                 <td>{r.intentions}</td>
                 <td>{r.enrolments}</td>
-                <td>{r.bless}</td>
+                <td>
+                  <LossValue value={r.bless} />
+                </td>
               </tr>
             ))}
           </tbody>
@@ -129,9 +152,9 @@ function pctChange(curr, prev) {
   return Math.round(((curr - prev) / prev) * 1000) / 10;
 }
 
-function DeltaPct({ pct }) {
+function DeltaPct({ pct, metricKey }) {
   if (pct == null) return null;
-  const cls = pct > 0 ? "delta-positive" : pct < 0 ? "delta-negative" : "delta-neutral";
+  const cls = deltaClassFor(metricKey, pct);
   return (
     <span className={cls} style={{ marginLeft: "0.5rem", fontSize: "0.8rem" }}>
       ({pct > 0 ? "+" : ""}
@@ -180,8 +203,8 @@ export function GrowthTracker({ growth }) {
                     const pct = prev ? pctChange(curr, prev[key] ?? 0) : null;
                     return (
                       <td key={key}>
-                        {curr}
-                        <DeltaPct pct={pct} />
+                        {key === "bless" ? <LossValue value={curr} /> : curr}
+                        <DeltaPct pct={pct} metricKey={key} />
                       </td>
                     );
                   })}
@@ -296,7 +319,8 @@ export default function CompareBlock({ title, comparison }) {
           const currVal = current[key] ?? 0;
           const max = Math.max(prevVal, currVal, 1);
           const { delta, pct } = deltas[key];
-          const deltaClass = delta > 0 ? "delta-positive" : delta < 0 ? "delta-negative" : "delta-neutral";
+          const deltaClass = deltaClassFor(key, delta);
+          const isLoss = key === "bless";
           return (
             <div className="compare-row" key={key}>
               <div className="compare-label">{label}</div>
@@ -312,7 +336,8 @@ export default function CompareBlock({ title, comparison }) {
                 </div>
               </div>
               <div className="compare-numbers">
-                {prevVal} → {currVal}{" "}
+                {isLoss ? <LossValue value={prevVal} /> : prevVal} →{" "}
+                {isLoss ? <LossValue value={currVal} /> : currVal}{" "}
                 <span className={deltaClass}>
                   ({delta > 0 ? "+" : ""}
                   {delta}
