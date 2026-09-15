@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import TopicBoard from "./TopicBoard.jsx";
 import {
   SCORECARD_CATEGORIES,
@@ -245,16 +245,30 @@ function PeriodPicker({ periodType, periodKey, onChangeType, onChangeKey }) {
 // for that exact coach+period so re-opening it is an edit, not a blank slate,
 // and POSTs to /api/scorecard on save — the only user-written (not synced
 // from the roster sheet) data in this app.
-function EntryForm({ coaches, periodType, periodKey, entries, onSaved }) {
-  const [coach, setCoach] = useState(coaches[0] || "");
-  const [customCoach, setCustomCoach] = useState("");
+function EntryForm({ coaches, periodType, periodKey, entries, onSaved, initialCoach, onInitialCoachConsumed }) {
+  const startCoach = initialCoach && !coaches.includes(initialCoach) ? "__other__" : initialCoach || coaches[0] || "";
+  const [coach, setCoach] = useState(startCoach);
+  const [customCoach, setCustomCoach] = useState(startCoach === "__other__" ? initialCoach : "");
   const [ratings, setRatings] = useState(() => {
+    const targetCoach = initialCoach || coaches[0] || "";
     const existing = entries.find(
-      (e) => e.periodType === periodType && e.periodKey === periodKey && e.coach === (coaches[0] || "")
+      (e) => e.periodType === periodType && e.periodKey === periodKey && e.coach === targetCoach
     );
     return existing ? { ...emptyRatings(), ...existing.ratings } : emptyRatings();
   });
   const [status, setStatus] = useState("idle"); // idle | saving | saved | error
+
+  // Tells the board to forget this edit target once it's been used to set
+  // up the form's initial state, so navigating back to "Enter / update
+  // scores" normally afterward (not via an Edit button) starts fresh
+  // rather than reopening a stale target. Runs once, on mount only — this
+  // component always gets a fresh key (see the topics array below) when a
+  // new Edit target is picked, so "on mount" and "on new edit target" are
+  // the same moment.
+  useEffect(() => {
+    if (initialCoach) onInitialCoachConsumed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const activeCoach = coach === "__other__" ? customCoach.trim() : coach;
 
@@ -409,7 +423,7 @@ function EntryForm({ coaches, periodType, periodKey, entries, onSaved }) {
 // every period. Coaches come from the union of the current roster and
 // anyone with scorecard history but no longer on it, so past scores for a
 // coach who's since left never just disappear from view.
-function ByCoach({ coaches, entries, onDelete }) {
+function ByCoach({ coaches, entries, onEdit, onDelete }) {
   const [selected, setSelected] = useState(null);
   const [query, setQuery] = useState("");
 
@@ -476,7 +490,15 @@ function ByCoach({ coaches, entries, onDelete }) {
                     <td>{formatPct(h.pctRatedOnly)}</td>
                     <td>{formatPct(h.pctAllCategories)}</td>
                     <td>{h.band}</td>
-                    <td>
+                    <td style={{ whiteSpace: "nowrap" }}>
+                      <button
+                        className="back-link"
+                        style={{ marginRight: "1rem" }}
+                        onClick={() => onEdit(h)}
+                        type="button"
+                      >
+                        Edit
+                      </button>
                       <button className="back-link" onClick={() => onDelete(h)} type="button">
                         Delete
                       </button>
@@ -527,7 +549,7 @@ function ByCoach({ coaches, entries, onDelete }) {
 // Every coach already scored for the selected period, plus the team
 // average — same shape as the workbook's own results table and Team
 // Average row.
-function ResultsTable({ entries, periodType, periodKey, onDelete }) {
+function ResultsTable({ entries, periodType, periodKey, onEdit, onDelete }) {
   const rows = entries
     .filter((e) => e.periodType === periodType && e.periodKey === periodKey)
     .sort((a, b) => a.coach.localeCompare(b.coach));
@@ -591,7 +613,15 @@ function ResultsTable({ entries, periodType, periodKey, onDelete }) {
                 <td>{formatPct(r.pctRatedOnly)}</td>
                 <td>{formatPct(r.pctAllCategories)}</td>
                 <td>{r.band}</td>
-                <td>
+                <td style={{ whiteSpace: "nowrap" }}>
+                  <button
+                    className="back-link"
+                    style={{ marginRight: "1rem" }}
+                    onClick={() => onEdit(r)}
+                    type="button"
+                  >
+                    Edit
+                  </button>
                   <button className="back-link" onClick={() => onDelete(r)} type="button">
                     Delete
                   </button>
@@ -750,10 +780,25 @@ export default function CoachScorecardBoard({ data, coaches }) {
   const [periodType, setPeriodType] = useState("weekly");
   const [periodKey, setPeriodKey] = useState(currentWeekKey());
   const [entries, setEntries] = useState(data.entries || []);
+  // Set together whenever an "Edit" button is clicked elsewhere on this
+  // board: pendingEdit tells the Enter-scores form which coach to open
+  // (and forces it to remount fresh via its key below, even if it's
+  // already the active topic), jumpSignal tells TopicBoard to switch to
+  // that topic. Both get a fresh object each click, so clicking Edit twice
+  // in a row — even for the same coach and period — still re-triggers both.
+  const [pendingEdit, setPendingEdit] = useState(null);
+  const [jumpSignal, setJumpSignal] = useState(null);
 
   function handleChangeType(nextType, nextKey) {
     setPeriodType(nextType);
     setPeriodKey(nextKey);
+  }
+
+  function handleEdit(entry) {
+    setPeriodType(entry.periodType);
+    setPeriodKey(entry.periodKey);
+    setPendingEdit({ coach: entry.coach, nonce: Date.now() });
+    setJumpSignal({ key: "enter-scores" });
   }
 
   function handleSaved(entry) {
@@ -831,11 +876,14 @@ export default function CoachScorecardBoard({ data, coaches }) {
             onChangeKey={setPeriodKey}
           />
           <EntryForm
+            key={pendingEdit ? `edit-${pendingEdit.nonce}` : "default"}
             coaches={coaches}
             periodType={periodType}
             periodKey={periodKey}
             entries={entries}
             onSaved={handleSaved}
+            initialCoach={pendingEdit?.coach}
+            onInitialCoachConsumed={() => setPendingEdit(null)}
           />
         </div>
       ),
@@ -856,6 +904,7 @@ export default function CoachScorecardBoard({ data, coaches }) {
             entries={entries}
             periodType={periodType}
             periodKey={periodKey}
+            onEdit={handleEdit}
             onDelete={handleDelete}
           />
         </div>
@@ -865,7 +914,7 @@ export default function CoachScorecardBoard({ data, coaches }) {
       key: "by-coach",
       label: "By coach",
       description: "One tile per coach — click through for their full score history",
-      render: () => <ByCoach coaches={coaches} entries={entries} onDelete={handleDelete} />,
+      render: () => <ByCoach coaches={coaches} entries={entries} onEdit={handleEdit} onDelete={handleDelete} />,
     },
     {
       key: "import-report",
@@ -884,5 +933,5 @@ export default function CoachScorecardBoard({ data, coaches }) {
     },
   ];
 
-  return <TopicBoard topics={topics} />;
+  return <TopicBoard topics={topics} jumpSignal={jumpSignal} />;
 }
