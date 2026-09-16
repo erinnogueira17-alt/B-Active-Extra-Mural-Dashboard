@@ -272,72 +272,141 @@ function monthLabelOf(key) {
   return d.toLocaleDateString("en-ZA", { month: "long", year: "numeric", timeZone: "UTC" });
 }
 
-// Buckets each paused player by the calendar month of their pausedAt date
-// (real, per-player — see pausedPlayersOf in lib/aggregate.js), most recent
-// month first, each player sorted newest-first within their month.
-function groupPausedByMonth(pausedPlayers) {
-  const byMonth = new Map();
+// Buckets each paused player by year, then by calendar month within that
+// year (real, per-player — see pausedPlayersOf in lib/aggregate.js), most
+// recent year/month first, each player sorted newest-first within their
+// month. Years aren't hardcoded to this season's 2025/2026 — whatever years
+// actually show up in the real pausedAt dates get their own pill.
+function groupPausedByYearMonth(pausedPlayers) {
+  const byYear = new Map();
   for (const p of pausedPlayers || []) {
-    const key = p.pausedAt.slice(0, 7);
-    if (!byMonth.has(key)) byMonth.set(key, []);
-    byMonth.get(key).push(p);
+    const year = p.pausedAt.slice(0, 4);
+    const monthKey = p.pausedAt.slice(0, 7);
+    if (!byYear.has(year)) byYear.set(year, new Map());
+    const monthsMap = byYear.get(year);
+    if (!monthsMap.has(monthKey)) monthsMap.set(monthKey, []);
+    monthsMap.get(monthKey).push(p);
   }
-  return [...byMonth.entries()]
-    .map(([key, players]) => ({
-      key,
-      label: monthLabelOf(key),
-      players: [...players].sort((a, b) => (a.pausedAt < b.pausedAt ? 1 : -1)),
+  return [...byYear.entries()]
+    .map(([year, monthsMap]) => ({
+      year,
+      players: [...monthsMap.values()].flat(),
+      months: [...monthsMap.entries()]
+        .map(([key, players]) => ({
+          key,
+          label: monthLabelOf(key),
+          players: [...players].sort((a, b) => (a.pausedAt < b.pausedAt ? 1 : -1)),
+        }))
+        .sort((a, b) => (a.key < b.key ? 1 : -1)),
     }))
-    .sort((a, b) => (a.key < b.key ? 1 : -1));
+    .sort((a, b) => (a.year < b.year ? 1 : -1));
 }
 
 // Players currently paused (see pausedPlayersOf in lib/aggregate.js) —
 // distinct from B-less, which only counts a real "End my membership".
-// Grouped by the month they paused in, since that's naturally how someone
-// would look this up ("who paused in August?") — click a month to see that
-// month's names, same pill pattern as By-month above.
+// Two-tier picker: an "All" pill (every paused player, any year/month) sits
+// alongside a pill per year that actually has data; picking a year reveals
+// a second row of month pills for that year, itself starting on "All of
+// <year>" so choosing a year alone already answers "who's paused in 2025"
+// without forcing a month pick too.
 function PausedPlayers({ pausedPlayers }) {
-  const months = groupPausedByMonth(pausedPlayers);
-  const [selectedKey, setSelectedKey] = useState(months[0]?.key || "");
+  const years = groupPausedByYearMonth(pausedPlayers);
+  const [yearKey, setYearKey] = useState(years[0]?.year || "all");
+  const [monthKey, setMonthKey] = useState("all");
   const [query, setQuery] = useState("");
 
-  if (months.length === 0) {
+  if (!pausedPlayers || pausedPlayers.length === 0) {
     return <div className="empty-state">No currently paused players.</div>;
   }
 
-  const selected = months.find((m) => m.key === selectedKey) || months[0];
+  const sortByPausedDesc = (list) => [...list].sort((a, b) => (a.pausedAt < b.pausedAt ? 1 : -1));
+
+  const selectedYear = years.find((y) => y.year === yearKey);
+  let players;
+  let scopeLabel;
+  if (yearKey === "all" || !selectedYear) {
+    players = sortByPausedDesc(pausedPlayers);
+    scopeLabel = "all paused players";
+  } else if (monthKey === "all") {
+    players = sortByPausedDesc(selectedYear.players);
+    scopeLabel = `all of ${yearKey}`;
+  } else {
+    const selectedMonth = selectedYear.months.find((m) => m.key === monthKey);
+    players = selectedMonth?.players || [];
+    scopeLabel = selectedMonth?.label || yearKey;
+  }
+
   const filtered = query
-    ? selected.players.filter((r) => r.name.toLowerCase().includes(query.toLowerCase()))
-    : selected.players;
+    ? players.filter((r) => r.name.toLowerCase().includes(query.toLowerCase()))
+    : players;
 
   return (
     <div>
       <p className="section-subtitle">
         Each player&apos;s most recent B-less-form submission where they selected &quot;Pause
-        Account&quot; without also ending their membership, grouped by the month they paused in.
-        The form has no separate &quot;back from pause&quot; signal, so a player only drops off
-        this list once they submit the form again with &quot;End my membership&quot; — if
-        someone has simply returned to sessions, this list won&apos;t know that on its own.
+        Account&quot; without also ending their membership. The form has no separate &quot;back
+        from pause&quot; signal, so a player only drops off this list once they submit the form
+        again with &quot;End my membership&quot; — if someone has simply returned to sessions,
+        this list won&apos;t know that on its own.
       </p>
-      <div className="name-pill-list" style={{ marginBottom: "1.25rem" }}>
-        {months.map((m) => (
+      <div className="name-pill-list" style={{ marginBottom: "0.75rem" }}>
+        <button
+          className={`name-pill${yearKey === "all" ? " active" : ""}`}
+          onClick={() => {
+            setYearKey("all");
+            setMonthKey("all");
+            setQuery("");
+          }}
+          type="button"
+        >
+          All ({pausedPlayers.length})
+        </button>
+        {years.map((y) => (
           <button
-            key={m.key}
-            className={`name-pill${selected.key === m.key ? " active" : ""}`}
+            key={y.year}
+            className={`name-pill${yearKey === y.year ? " active" : ""}`}
             onClick={() => {
-              setSelectedKey(m.key);
+              setYearKey(y.year);
+              setMonthKey("all");
               setQuery("");
             }}
             type="button"
           >
-            {m.label} ({m.players.length})
+            {y.year} ({y.players.length})
           </button>
         ))}
       </div>
+      {selectedYear && (
+        <div className="name-pill-list" style={{ marginBottom: "1.25rem" }}>
+          <button
+            className={`name-pill${monthKey === "all" ? " active" : ""}`}
+            onClick={() => {
+              setMonthKey("all");
+              setQuery("");
+            }}
+            type="button"
+          >
+            All of {yearKey} ({selectedYear.players.length})
+          </button>
+          {selectedYear.months.map((m) => (
+            <button
+              key={m.key}
+              className={`name-pill${monthKey === m.key ? " active" : ""}`}
+              onClick={() => {
+                setMonthKey(m.key);
+                setQuery("");
+              }}
+              type="button"
+            >
+              {m.label} ({m.players.length})
+            </button>
+          ))}
+        </div>
+      )}
       <input
         className="name-search"
         type="text"
-        placeholder={`Search paused players in ${selected.label}…`}
+        placeholder={`Search paused players in ${scopeLabel}…`}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
