@@ -202,6 +202,14 @@ async function fetchYearCombinedRows(spreadsheetId) {
     // pausedPlayersOf in lib/aggregate.js). Confirmed directly against the
     // sheet: "Players name and surname ?" on the B-less form.
     const playerNameKey = findHeaderKey(headers, "name and surname");
+    // Enrolments-only: the Player Enrolment form's "Payment option" column
+    // (per business, column J on that sheet) is how a staff member's own
+    // enrolment is recorded — a real payment method (EFT, Debit Order,
+    // Cash, ...) otherwise. Staff enrolments aren't paying customers and
+    // shouldn't count as a real paid enrolment in reporting (see
+    // isStaffEnrolment in lib/aggregate.js).
+    const paymentOptionKey =
+      findHeaderKey(headers, "payment option") || findHeaderKey(headers, "payment");
     for (const row of tabRows) {
       row.__timestamp = resolved ? toIsoDate(row[resolved.key], resolved.dayFirst) : undefined;
       row.__venue = venueKey ? row[venueKey] : undefined;
@@ -210,6 +218,7 @@ async function fetchYearCombinedRows(spreadsheetId) {
       row.__package = packageKey ? row[packageKey] : undefined;
       row.__membershipAction = membershipActionKey ? row[membershipActionKey] : undefined;
       row.__playerName = playerNameKey ? row[playerNameKey] : undefined;
+      row.__paymentOption = paymentOptionKey ? row[paymentOptionKey] : undefined;
     }
     rows.push(...tabRows);
     perTab.push({
@@ -246,6 +255,8 @@ async function fetchYearCombinedRows(spreadsheetId) {
       membershipActionKey,
       membershipActionSamples: sampleVenueValues(tabRows, membershipActionKey),
       playerNameKey,
+      paymentOptionKey,
+      paymentOptionSamples: sampleVenueValues(tabRows, paymentOptionKey),
     });
   }
   return { rows, allTabs: tabs, chosenTabs: targets, perTab };
