@@ -19,35 +19,106 @@ const REGION_LABELS = {
   unclassified: "Unclassified",
 };
 
-function RegionBreakdown({ regionTotals }) {
+// Each unclassified row's raw venue text, tallied by real occurrence count
+// (see unclassifiedVenuesOf in lib/aggregate.js) — this is the concrete,
+// actionable list: whatever shows up here is a real school/venue whose text
+// on the intake forms didn't overlap enough with the roster's spelling of
+// it to auto-match. Fixing one of these means either correcting the venue
+// dropdown text (or the roster's school name) so they read closer to each
+// other, or — if it's a genuinely new/renamed school — adding it to the
+// Current State roster so a future sync can match it.
+function UnclassifiedVenues({ venues }) {
+  if (!venues || venues.length === 0) return null;
+  return (
+    <div className="card" style={{ marginTop: "1.25rem" }}>
+      <h3 className="section-title" style={{ marginBottom: "0.5rem" }}>
+        Unclassified venues
+      </h3>
+      <p className="section-subtitle">
+        These are the actual venue names on the intake forms that couldn&apos;t be confidently
+        matched to a school on the Current State roster. To allocate one to JHB or CPT, make its
+        spelling on the roster and on the form&apos;s venue list line up more closely — or, if
+        it&apos;s a new or renamed school, add it to the roster.
+      </p>
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Venue text (as submitted)</th>
+              <th>Rows</th>
+            </tr>
+          </thead>
+          <tbody>
+            {venues.map((v) => (
+              <tr key={v.venue}>
+                <td>{v.venue}</td>
+                <td>{v.count}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function RegionBreakdown({ regionTotals, regionTotalsMonthToDate, unclassifiedVenues }) {
+  const [period, setPeriod] = useState(regionTotalsMonthToDate ? "mtd" : "season");
+  const totals = period === "mtd" ? regionTotalsMonthToDate : regionTotals;
+  const venues = period === "mtd" ? unclassifiedVenues?.monthToDate : unclassifiedVenues?.season;
+
   if (!regionTotals) return <div className="empty-state">No data yet.</div>;
-  const entries = REGION_ORDER.map((key) => ({ key, ...regionTotals[key] })).filter(
+
+  const entries = REGION_ORDER.map((key) => ({ key, ...totals?.[key] })).filter(
     (r) => (r.intentions || 0) + (r.enrolments || 0) + (r.bless || 0) > 0
   );
-  if (entries.length === 0) return <div className="empty-state">No data yet.</div>;
 
   return (
     <div>
-      {entries.some((e) => e.key === "unclassified") && (
-        <p className="section-subtitle">
-          Unclassified rows are venues the sync couldn&apos;t confidently match to a known school —
-          shown separately rather than guessed into the wrong region.
-        </p>
-      )}
-      <div className="card-grid">
-        {entries.map((r) => (
-          <div className="card" key={r.key}>
-            <h3 className="section-title" style={{ marginBottom: "0.75rem" }}>
-              {REGION_LABELS[r.key] || r.key}
-            </h3>
-            <p className="kpi-sub">Intentions: {r.intentions || 0}</p>
-            <p className="kpi-sub">Enrolments: {r.enrolments || 0}</p>
-            <p className="kpi-sub">
-              B-less: <LossValue value={r.bless || 0} />
-            </p>
-          </div>
-        ))}
+      <div className="name-pill-list" style={{ marginBottom: "1.25rem" }}>
+        <button
+          className={`name-pill${period === "mtd" ? " active" : ""}`}
+          onClick={() => setPeriod("mtd")}
+          type="button"
+          disabled={!regionTotalsMonthToDate}
+        >
+          Month to date
+        </button>
+        <button
+          className={`name-pill${period === "season" ? " active" : ""}`}
+          onClick={() => setPeriod("season")}
+          type="button"
+        >
+          Full season
+        </button>
       </div>
+      {entries.length === 0 ? (
+        <div className="empty-state">No data yet for this period.</div>
+      ) : (
+        <>
+          {entries.some((e) => e.key === "unclassified") && (
+            <p className="section-subtitle">
+              Unclassified rows are venues the sync couldn&apos;t confidently match to a known
+              school — shown separately rather than guessed into the wrong region.
+            </p>
+          )}
+          <div className="card-grid">
+            {entries.map((r) => (
+              <div className="card" key={r.key}>
+                <h3 className="section-title" style={{ marginBottom: "0.75rem" }}>
+                  {REGION_LABELS[r.key] || r.key}
+                </h3>
+                <p className="kpi-sub">Intentions: {r.intentions || 0}</p>
+                <p className="kpi-sub">Enrolments: {r.enrolments || 0}</p>
+                <p className="kpi-sub">
+                  B-less: <LossValue value={r.bless || 0} />
+                </p>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+      <UnclassifiedVenues venues={venues} />
     </div>
   );
 }
@@ -354,7 +425,13 @@ export default function EnrolmentBoard({ data }) {
       key: "region",
       label: "By region",
       description: "Johannesburg vs. Cape Town extramural",
-      render: () => <RegionBreakdown regionTotals={data.regionTotals} />,
+      render: () => (
+        <RegionBreakdown
+          regionTotals={data.regionTotals}
+          regionTotalsMonthToDate={data.regionTotalsMonthToDate}
+          unclassifiedVenues={data.unclassifiedVenues}
+        />
+      ),
     },
     {
       key: "trial-outcomes",
