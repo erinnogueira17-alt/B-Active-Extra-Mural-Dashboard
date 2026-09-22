@@ -1,6 +1,6 @@
 import { put, list } from "@vercel/blob";
 import { NextResponse } from "next/server";
-import { SCORECARD_CATEGORIES, scoreRatings } from "../../../lib/scorecard.js";
+import { SCORECARD_CATEGORIES, scoreRatings, canonicalizeCoachName } from "../../../lib/scorecard.js";
 
 const BLOB_KEY = "coach-scorecard-data.json";
 
@@ -60,7 +60,11 @@ export async function POST(request) {
     cleanRatings[category] = Number.isFinite(v) && v >= 0 && v <= 5 ? Math.round(v) : 0;
   }
 
-  const coachName = coach.trim();
+  // Canonicalize known coach-name aliases (e.g. a nickname vs. given name —
+  // see COACH_NAME_ALIASES in lib/scorecard.js) so every new save always
+  // lands under the one name shown everywhere else, whatever spelling was
+  // typed or selected client-side.
+  const coachName = canonicalizeCoachName(coach.trim());
   const id = `${periodType}:${periodKey}:${coachName}`;
   const entry = {
     id,
@@ -73,7 +77,23 @@ export async function POST(request) {
   };
 
   const entries = await readEntries();
-  const nextEntries = [...entries.filter((e) => e.id !== id), entry];
+  // Drops any existing entry for the same period whose coach canonicalizes
+  // to the same identity — not just an exact id match — so editing a
+  // record that was originally saved under a different alias (e.g. a
+  // pre-existing "Micky" entry now edited and re-saved as "Mikael")
+  // replaces that old record instead of leaving it behind as an orphaned
+  // duplicate alongside the new one.
+  const nextEntries = [
+    ...entries.filter(
+      (e) =>
+        !(
+          e.periodType === periodType &&
+          e.periodKey === periodKey &&
+          canonicalizeCoachName(e.coach) === coachName
+        )
+    ),
+    entry,
+  ];
 
   await put(BLOB_KEY, JSON.stringify({ entries: nextEntries }, null, 2), {
     access: "public",
