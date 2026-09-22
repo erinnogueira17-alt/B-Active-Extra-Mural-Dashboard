@@ -9,6 +9,7 @@ import {
   currentWeekKey,
   currentMonthKey,
   formatPeriodLabel,
+  canonicalizeCoachName,
 } from "../lib/scorecard.js";
 
 function emptyRatings() {
@@ -251,8 +252,17 @@ function EntryForm({ coaches, periodType, periodKey, entries, onSaved, initialCo
   const [customCoach, setCustomCoach] = useState(startCoach === "__other__" ? initialCoach : "");
   const [ratings, setRatings] = useState(() => {
     const targetCoach = initialCoach || coaches[0] || "";
+    // Compares via canonicalizeCoachName, not the raw stored `coach`
+    // string — initialCoach/targetCoach is always the canonical name (see
+    // handleEdit below), but a historical entry can still literally be
+    // saved under an alias (e.g. a nickname), so an exact-string match
+    // here would silently miss it and prefill blank instead of that
+    // coach's real saved ratings.
     const existing = entries.find(
-      (e) => e.periodType === periodType && e.periodKey === periodKey && e.coach === targetCoach
+      (e) =>
+        e.periodType === periodType &&
+        e.periodKey === periodKey &&
+        canonicalizeCoachName(e.coach) === targetCoach
     );
     return existing ? { ...emptyRatings(), ...existing.ratings } : emptyRatings();
   });
@@ -275,7 +285,9 @@ function EntryForm({ coaches, periodType, periodKey, entries, onSaved, initialCo
   function loadCoachPeriod(nextCoach, nextPeriodType, nextPeriodKey) {
     const existing = entries.find(
       (e) =>
-        e.periodType === nextPeriodType && e.periodKey === nextPeriodKey && e.coach === nextCoach
+        e.periodType === nextPeriodType &&
+        e.periodKey === nextPeriodKey &&
+        canonicalizeCoachName(e.coach) === nextCoach
     );
     setRatings(existing ? { ...emptyRatings(), ...existing.ratings } : emptyRatings());
     setStatus("idle");
@@ -423,13 +435,24 @@ function EntryForm({ coaches, periodType, periodKey, entries, onSaved, initialCo
 // every period. Coaches come from the union of the current roster and
 // anyone with scorecard history but no longer on it, so past scores for a
 // coach who's since left never just disappear from view.
+//
+// Tile identity and history are both grouped by canonicalizeCoachName
+// (lib/scorecard.js), not the raw `coach` string on each entry — so a
+// coach known to have been saved under two names (e.g. a nickname vs.
+// their given name) shows as one tile with one combined history, even for
+// entries saved before that alias existed. onEdit/onDelete still receive
+// the untouched raw entry object, since its exact original `coach` string
+// is embedded in its `id` and is what identifies it server-side.
 function ByCoach({ coaches, entries, onEdit, onDelete }) {
   const [selected, setSelected] = useState(null);
   const [query, setQuery] = useState("");
 
-  const allNames = [...new Set([...(coaches || []), ...entries.map((e) => e.coach)])].sort((a, b) =>
-    a.localeCompare(b)
-  );
+  const allNames = [
+    ...new Set([
+      ...(coaches || []).map(canonicalizeCoachName),
+      ...entries.map((e) => canonicalizeCoachName(e.coach)),
+    ]),
+  ].sort((a, b) => a.localeCompare(b));
 
   if (allNames.length === 0) {
     return <div className="empty-state">No coaches yet.</div>;
@@ -437,7 +460,7 @@ function ByCoach({ coaches, entries, onEdit, onDelete }) {
 
   if (selected) {
     const history = entries
-      .filter((e) => e.coach === selected)
+      .filter((e) => canonicalizeCoachName(e.coach) === selected)
       .sort((a, b) => (a.periodKey < b.periodKey ? 1 : -1));
 
     return (
@@ -529,7 +552,7 @@ function ByCoach({ coaches, entries, onEdit, onDelete }) {
       />
       <div className="board-landing" style={{ marginTop: "1.25rem" }}>
         {filtered.map((name) => {
-          const count = entries.filter((e) => e.coach === name).length;
+          const count = entries.filter((e) => canonicalizeCoachName(e.coach) === name).length;
           return (
             <button key={name} className="board-tile" onClick={() => setSelected(name)} type="button">
               <span className="board-tile-label">{name}</span>
@@ -548,11 +571,15 @@ function ByCoach({ coaches, entries, onEdit, onDelete }) {
 
 // Every coach already scored for the selected period, plus the team
 // average — same shape as the workbook's own results table and Team
-// Average row.
+// Average row. Displayed coach names run through canonicalizeCoachName
+// (lib/scorecard.js) so a coach known to appear under two spellings always
+// reads the same way here as everywhere else — this doesn't merge rows
+// (each saved entry, whatever name it was saved under, still gets its own
+// row and its own Edit/Delete, which act on the raw entry unchanged).
 function ResultsTable({ entries, periodType, periodKey, onEdit, onDelete }) {
   const rows = entries
     .filter((e) => e.periodType === periodType && e.periodKey === periodKey)
-    .sort((a, b) => a.coach.localeCompare(b.coach));
+    .sort((a, b) => canonicalizeCoachName(a.coach).localeCompare(canonicalizeCoachName(b.coach)));
 
   if (rows.length === 0) {
     return (
@@ -570,7 +597,12 @@ function ResultsTable({ entries, periodType, periodKey, onEdit, onDelete }) {
   const chartItems = rated
     .slice()
     .sort((a, b) => b.pctRatedOnly - a.pctRatedOnly)
-    .map((r) => ({ key: r.coach, label: r.coach, pct: r.pctRatedOnly, band: r.band }));
+    .map((r) => ({
+      key: r.coach,
+      label: canonicalizeCoachName(r.coach),
+      pct: r.pctRatedOnly,
+      band: r.band,
+    }));
 
   return (
     <div>
@@ -607,7 +639,7 @@ function ResultsTable({ entries, periodType, periodKey, onEdit, onDelete }) {
           <tbody>
             {rows.map((r) => (
               <tr key={r.coach}>
-                <td>{r.coach}</td>
+                <td>{canonicalizeCoachName(r.coach)}</td>
                 <td>{r.total}</td>
                 <td>{r.categoriesRated} of {SCORECARD_CATEGORIES.length}</td>
                 <td>{formatPct(r.pctRatedOnly)}</td>
@@ -797,7 +829,12 @@ export default function CoachScorecardBoard({ data, coaches }) {
   function handleEdit(entry) {
     setPeriodType(entry.periodType);
     setPeriodKey(entry.periodKey);
-    setPendingEdit({ coach: entry.coach, nonce: Date.now() });
+    // Canonicalized so editing a historical entry saved under a known
+    // alias (see COACH_NAME_ALIASES in lib/scorecard.js) pre-selects the
+    // coach's real dropdown entry instead of falling back to the "other"
+    // free-text box — EntryForm's own ratings lookups above canonicalize
+    // too, so the actual saved ratings still get found and prefilled.
+    setPendingEdit({ coach: canonicalizeCoachName(entry.coach), nonce: Date.now() });
     setJumpSignal({ key: "enter-scores" });
   }
 

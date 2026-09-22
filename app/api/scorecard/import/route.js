@@ -1,7 +1,11 @@
 import { put, list } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import ExcelJS from "exceljs";
-import { SCORECARD_CATEGORIES, scoreRatings } from "../../../../lib/scorecard.js";
+import {
+  SCORECARD_CATEGORIES,
+  scoreRatings,
+  canonicalizeCoachName,
+} from "../../../../lib/scorecard.js";
 
 const BLOB_KEY = "coach-scorecard-data.json";
 
@@ -168,17 +172,36 @@ export async function POST(request) {
   const updated = [];
   let nextEntries = existing;
   for (const { name, ratings } of parsed.rows) {
-    const id = `${periodType}:${periodKey}:${name}`;
+    // Same alias canonicalization as the manual-entry route (see
+    // COACH_NAME_ALIASES in lib/scorecard.js) — a coach whose name in the
+    // uploaded report doesn't match their canonical spelling still lands
+    // under the one identity shown everywhere else.
+    const coachName = canonicalizeCoachName(name);
+    const id = `${periodType}:${periodKey}:${coachName}`;
     const entry = {
       id,
-      coach: name,
+      coach: coachName,
       periodType,
       periodKey,
       ratings,
       ...scoreRatings(ratings),
       updatedAt: new Date().toISOString(),
     };
-    nextEntries = [...nextEntries.filter((e) => e.id !== id), entry];
+    // Same canonical-identity dedupe as the manual-entry route — drops any
+    // existing entry for this period whose coach canonicalizes to the same
+    // identity, not just an exact id match, so a coach previously saved
+    // under a different alias gets replaced rather than duplicated.
+    nextEntries = [
+      ...nextEntries.filter(
+        (e) =>
+          !(
+            e.periodType === periodType &&
+            e.periodKey === periodKey &&
+            canonicalizeCoachName(e.coach) === coachName
+          )
+      ),
+      entry,
+    ];
     updated.push(entry);
   }
 
