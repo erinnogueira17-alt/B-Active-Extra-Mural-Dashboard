@@ -616,26 +616,44 @@ export default function CurrentStateBoard({ data, growth, history }) {
           getLabel={(c) => c.coach}
           searchPlaceholder="Search coaches…"
           renderDetail={(c) => (
-            <div className="kpi-grid">
-              <div className="kpi-card">
-                <p className="kpi-label">Schools</p>
-                <div className="kpi-value">{c.schools}</div>
+            <div>
+              <div className="kpi-grid">
+                <div className="kpi-card">
+                  <p className="kpi-label">Schools</p>
+                  <div className="kpi-value">{c.schools}</div>
+                </div>
+                <div className="kpi-card">
+                  <p className="kpi-label">Paying players</p>
+                  <div className="kpi-value">{c.payingPlayers.toLocaleString()}</div>
+                </div>
+                <div className="kpi-card">
+                  <p className="kpi-label">Non-paying players</p>
+                  <div className="kpi-value">{c.sponsoredPlayers.toLocaleString()}</div>
+                </div>
+                <div className="kpi-card">
+                  <p className="kpi-label">Enrolled players</p>
+                  <div className="kpi-value">{c.enrolledPlayers.toLocaleString()}</div>
+                </div>
+                <div className="kpi-card">
+                  <p className="kpi-label">Revenue</p>
+                  <div className="kpi-value">{formatCurrency(c.revenue)}</div>
+                </div>
               </div>
-              <div className="kpi-card">
-                <p className="kpi-label">Paying players</p>
-                <div className="kpi-value">{c.payingPlayers.toLocaleString()}</div>
-              </div>
-              <div className="kpi-card">
-                <p className="kpi-label">Non-paying players</p>
-                <div className="kpi-value">{c.sponsoredPlayers.toLocaleString()}</div>
-              </div>
-              <div className="kpi-card">
-                <p className="kpi-label">Enrolled players</p>
-                <div className="kpi-value">{c.enrolledPlayers.toLocaleString()}</div>
-              </div>
-              <div className="kpi-card">
-                <p className="kpi-label">Revenue</p>
-                <div className="kpi-value">{formatCurrency(c.revenue)}</div>
+              <div className="card" style={{ marginTop: "1.25rem" }}>
+                <h3 className="section-title" style={{ marginBottom: "0.75rem", fontSize: "1.05rem" }}>
+                  Schools coached
+                </h3>
+                {c.schoolNames && c.schoolNames.length > 0 ? (
+                  <ul style={{ margin: 0, paddingLeft: "1.25rem" }}>
+                    {c.schoolNames.map((school) => (
+                      <li key={school} className="kpi-sub">
+                        {school}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="kpi-sub">No schools on record.</p>
+                )}
               </div>
             </div>
           )}

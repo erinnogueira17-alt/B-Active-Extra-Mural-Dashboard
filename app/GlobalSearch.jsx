@@ -104,7 +104,10 @@ export default function GlobalSearch({ currentState, growth, onNavigate }) {
                     <h3 className="section-title" style={{ marginBottom: "0.5rem", fontSize: "1.05rem" }}>
                       {c.coach}
                     </h3>
-                    <p className="kpi-sub">{c.schools.toLocaleString()} schools</p>
+                    <p className="kpi-sub">
+                      {c.schools.toLocaleString()} school{c.schools === 1 ? "" : "s"}
+                      {c.schoolNames && c.schoolNames.length > 0 ? `: ${c.schoolNames.join(", ")}` : ""}
+                    </p>
                     <p className="kpi-sub">
                       {c.payingPlayers.toLocaleString()} paying / {c.enrolledPlayers.toLocaleString()} enrolled ·{" "}
                       {formatCurrency(c.revenue)}
