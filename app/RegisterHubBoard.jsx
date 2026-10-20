@@ -9,8 +9,11 @@ import {
   dayKeyOf,
   parseDateKey,
   todayDateKey,
+  isConcernOverdue,
+  strikeEligibleConcerns,
 } from "../lib/registerHub.js";
-import { listCoachNameAliases } from "../lib/scorecard.js";
+import { listCoachNameAliases, currentMonthKey, formatPeriodLabel } from "../lib/scorecard.js";
+import { computeCoachScorecard } from "../lib/registerHubScoring.js";
 
 function ComingSoon({ children }) {
   return <div className="empty-state">{children}</div>;
@@ -584,17 +587,441 @@ function DailyCheck({ schools, dailyChecks, concerns, onDailyCheckSaved }) {
   );
 }
 
+// ---------- Tracker ----------
+
+function monthOffsetKey(monthKey, offset) {
+  const [y, m] = monthKey.split("-").map(Number);
+  const d = new Date(Date.UTC(y, m - 1 + offset, 1));
+  return d.toISOString().slice(0, 7);
+}
+
+// Attaches an evidence file (image/PDF) to a concern or a rotation-week row.
+// The only file-upload control in the app — reuses the same hidden-input-
+// behind-a-styled-label trick, multipart POST to /api/register-hub/evidence.
+function EvidenceUpload({ targetType, targetId, evidenceFiles, onUploaded }) {
+  const [status, setStatus] = useState("idle");
+
+  async function handleFile(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setStatus("uploading");
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("targetType", targetType);
+      formData.append("targetId", targetId);
+      const res = await fetch("/api/register-hub/evidence", { method: "POST", body: formData });
+      const body = await res.json().catch(() => ({ ok: false }));
+      if (!body.ok) throw new Error(body.error || "Upload failed");
+      onUploaded(body.target);
+      setStatus("idle");
+    } catch {
+      setStatus("error");
+    }
+  }
+
+  return (
+    <div style={{ marginTop: "0.4rem", display: "flex", flexWrap: "wrap", gap: "0.6rem", alignItems: "center" }}>
+      {(evidenceFiles || []).map((f) => (
+        <a key={f.id} href={f.url} target="_blank" rel="noreferrer" className="kpi-sub">
+          📎 {f.filename}
+        </a>
+      ))}
+      <label className="back-link" style={{ marginBottom: 0, cursor: "pointer" }}>
+        {status === "uploading" ? "Uploading…" : "Attach evidence"}
+        <input type="file" accept="image/*,application/pdf" style={{ display: "none" }} onChange={handleFile} />
+      </label>
+      {status === "error" && (
+        <span className="kpi-sub" style={{ color: "var(--negative)" }}>
+          Upload failed — retry
+        </span>
+      )}
+    </div>
+  );
+}
+
+function ConcernRow({ concern, now, eligibleForStrike, onResolve, onReply, onStrike, onEvidenceUploaded }) {
+  const [replyText, setReplyText] = useState(concern.reply || "");
+  const overdue = isConcernOverdue(concern, now);
+
+  return (
+    <div className="card" style={{ marginBottom: "0.75rem" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "0.5rem" }}>
+        <div>
+          <span className={`concern-tag ${concern.urgency}`}>{concern.type}</span>
+          {concern.strike && (
+            <span className="concern-tag urgent" style={{ marginLeft: "0.5rem" }}>
+              Strike issued
+            </span>
+          )}
+          {overdue && !concern.strike && (
+            <span className="kpi-sub" style={{ color: "var(--negative)" }}>
+              {" "}
+              · Overdue
+            </span>
+          )}
+        </div>
+        <span className="kpi-sub">
+          {concern.school} · {concern.date}
+        </span>
+      </div>
+      {concern.note && (
+        <p className="kpi-sub" style={{ marginTop: "0.35rem" }}>
+          Note: {concern.note}
+        </p>
+      )}
+      <p className="kpi-sub">
+        Resolve by {new Date(concern.resolveBy).toLocaleString()} ·{" "}
+        {concern.status === "resolved" ? "Resolved" : "Open"}
+      </p>
+      {concern.reply && (
+        <p className="kpi-sub" style={{ marginTop: "0.35rem" }}>
+          Coach replied: {concern.reply}
+        </p>
+      )}
+      {concern.status !== "resolved" && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginTop: "0.5rem", alignItems: "center" }}>
+          <input
+            className="name-search"
+            style={{ marginBottom: 0, maxWidth: "220px" }}
+            type="text"
+            placeholder="Coach's reply"
+            value={replyText}
+            onChange={(e) => setReplyText(e.target.value)}
+          />
+          <button className="back-link" style={{ marginBottom: 0 }} type="button" onClick={() => onReply(concern.id, replyText)}>
+            Log reply
+          </button>
+          <button className="back-link" style={{ marginBottom: 0 }} type="button" onClick={() => onResolve(concern.id)}>
+            Mark resolved
+          </button>
+          {eligibleForStrike && (
+            <button
+              className="back-link"
+              style={{ marginBottom: 0, color: "var(--negative)" }}
+              type="button"
+              onClick={() => onStrike(concern.id)}
+            >
+              Issue strike
+            </button>
+          )}
+        </div>
+      )}
+      <EvidenceUpload
+        targetType="concern"
+        targetId={concern.id}
+        evidenceFiles={concern.evidenceFiles}
+        onUploaded={onEvidenceUploaded}
+      />
+    </div>
+  );
+}
+
+function RotationWeekRow({ weekKey, coaches, rows, onToggle, onEvidenceUploaded }) {
+  return (
+    <div className="card" style={{ marginBottom: "0.75rem" }}>
+      <h4 className="section-title" style={{ fontSize: "0.95rem", marginBottom: "0.5rem" }}>
+        Week of {weekKey}
+      </h4>
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Coach</th>
+              <th>Completed (8)</th>
+              <th>On time (6)</th>
+              <th>Attended huddle (6)</th>
+              <th>Evidence</th>
+            </tr>
+          </thead>
+          <tbody>
+            {coaches.map((coach) => {
+              const row = rows.find((r) => r.coach === coach) || {
+                coach,
+                completed: false,
+                onTime: false,
+                attendedHuddle: false,
+                evidenceFiles: [],
+              };
+              return (
+                <tr key={coach}>
+                  <td>{coach}</td>
+                  {["completed", "onTime", "attendedHuddle"].map((field) => (
+                    <td key={field}>
+                      <input
+                        type="checkbox"
+                        checked={!!row[field]}
+                        onChange={(e) => onToggle(weekKey, coach, field, e.target.checked, row)}
+                      />
+                    </td>
+                  ))}
+                  <td>
+                    {row.id ? (
+                      <EvidenceUpload
+                        targetType="rotation"
+                        targetId={row.id}
+                        evidenceFiles={row.evidenceFiles}
+                        onUploaded={onEvidenceUploaded}
+                      />
+                    ) : (
+                      <span className="kpi-sub">Tick a box first</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function Tracker({ coaches, concerns, dailyChecks, rotationChecks, onConcernUpdated, onRotationUpserted }) {
+  const [monthKey, setMonthKey] = useState(() => currentMonthKey());
+  const [newWeek, setNewWeek] = useState("");
+  const now = new Date();
+  const eligibleIds = strikeEligibleConcerns(concerns, now);
+
+  const monthConcerns = concerns
+    .filter((c) => c.date.startsWith(monthKey))
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+  const byCoach = {};
+  for (const c of monthConcerns) {
+    (byCoach[c.coach] ||= []).push(c);
+  }
+
+  const trackedWeekKeys = [...new Set(rotationChecks.filter((r) => r.weekKey.startsWith(monthKey)).map((r) => r.weekKey))].sort();
+
+  async function patchConcern(id, patch) {
+    const res = await fetch("/api/register-hub/concerns", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, ...patch }),
+    });
+    const body = await res.json().catch(() => ({ ok: false }));
+    if (body.ok) {
+      onConcernUpdated(body.concern);
+    } else {
+      alert(body.error || "That didn't save — try again.");
+    }
+  }
+
+  function handleResolve(id) {
+    patchConcern(id, { action: "resolve" });
+  }
+  function handleReply(id, reply) {
+    if (!reply.trim()) return;
+    patchConcern(id, { action: "reply", reply });
+  }
+  function handleStrike(id) {
+    if (!confirm("Issue a strike for this concern?")) return;
+    patchConcern(id, { action: "strike" });
+  }
+
+  async function handleRotationToggle(weekKey, coach, field, checked, row) {
+    const res = await fetch("/api/register-hub/rotation", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: row.id || undefined,
+        weekKey,
+        coach,
+        completed: field === "completed" ? checked : !!row.completed,
+        onTime: field === "onTime" ? checked : !!row.onTime,
+        attendedHuddle: field === "attendedHuddle" ? checked : !!row.attendedHuddle,
+      }),
+    });
+    const body = await res.json().catch(() => ({ ok: false }));
+    if (body.ok) onRotationUpserted(body.rotationCheck);
+  }
+
+  function handleAddWeek() {
+    if (!newWeek || coaches.length === 0) return;
+    handleRotationToggle(newWeek, coaches[0], "completed", false, {
+      completed: false,
+      onTime: false,
+      attendedHuddle: false,
+    });
+    setNewWeek("");
+  }
+
+  const scorecards = coaches.map((coach) => ({
+    coach,
+    ...computeCoachScorecard(coach, { dailyChecks, concerns, rotationChecks, monthKey }),
+  }));
+
+  function monthConcernCount(coach) {
+    return byCoach[coach]?.length || 0;
+  }
+
+  function copySnapshot() {
+    const lines = scorecards.map((s) => {
+      const reasons = [];
+      if (!s.compliant.concerns) reasons.push("open concerns");
+      if (!s.compliant.rotations) reasons.push("rotation incomplete");
+      if (!s.compliant.photo) reasons.push("missing photo");
+      const label = s.compliant.overall ? "Compliant" : `Not compliant (${reasons.join(", ")})`;
+      return `${s.coach}: ${label} — ${Math.round(s.total)}/100`;
+    });
+    const text = `Register Hub compliance — ${formatPeriodLabel("monthly", monthKey)}\n${lines.join("\n")}`;
+    if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).catch(() => {});
+  }
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap" }}>
+        <button className="back-link" type="button" onClick={() => setMonthKey((k) => monthOffsetKey(k, -1))}>
+          ← Prev
+        </button>
+        <strong>{formatPeriodLabel("monthly", monthKey)}</strong>
+        <button className="back-link" type="button" onClick={() => setMonthKey((k) => monthOffsetKey(k, 1))}>
+          Next →
+        </button>
+        <button className="back-link" type="button" onClick={() => setMonthKey(currentMonthKey())}>
+          This month
+        </button>
+      </div>
+
+      <h3 className="section-title">Compliance snapshot</h3>
+      <p className="section-subtitle">
+        Compliant = no register concerns logged, every tracked rotation week fully ticked, and a
+        marketing photo submitted on every checked lesson. The photo score is a provisional proxy
+        (submission rate, not daily "photo of the day" wins) until that feature is built.
+      </p>
+      <button className="back-link" type="button" onClick={copySnapshot} style={{ marginBottom: "1rem" }}>
+        Copy snapshot as text
+      </button>
+      {scorecards.length === 0 ? (
+        <div className="empty-state">No coaches yet — add schools with a coach in Setup first.</div>
+      ) : (
+        <div className="card-grid" style={{ marginBottom: "1.5rem" }}>
+          {scorecards.map((s) => (
+            <div key={s.coach} className="card">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                <h4 className="section-title" style={{ fontSize: "1rem", marginBottom: "0.4rem" }}>
+                  {s.coach}
+                </h4>
+                <span className={`compliance-badge ${s.compliant.overall ? "compliant" : "non-compliant"}`}>
+                  {s.compliant.overall ? "Compliant" : "Not compliant"}
+                </span>
+              </div>
+              <div className="kpi-grid">
+                <div className="kpi-card">
+                  <div className="kpi-label">Total</div>
+                  <div className="kpi-value">{Math.round(s.total)}/100</div>
+                </div>
+                <div className="kpi-card">
+                  <div className="kpi-label">Register score</div>
+                  <div className="kpi-value">{Math.round(s.registerScore)}/60</div>
+                </div>
+                <div className="kpi-card">
+                  <div className="kpi-label">Concerns ({s.compliant.concerns ? "✓" : "✗"})</div>
+                  <div className="kpi-value">{monthConcernCount(s.coach)}</div>
+                </div>
+                <div className="kpi-card">
+                  <div className="kpi-label">Rotation ({s.compliant.rotations ? "✓" : "✗"})</div>
+                  <div className="kpi-value">{Math.round(s.rotationScore)}/20</div>
+                </div>
+                <div className="kpi-card">
+                  <div className="kpi-label">Photo ({s.compliant.photo ? "✓" : "✗"})</div>
+                  <div className="kpi-value">{Math.round(s.photoScore)}/20</div>
+                </div>
+              </div>
+              {s.strikeCount > 0 && (
+                <p className="kpi-sub" style={{ color: "var(--negative)", marginTop: "0.4rem" }}>
+                  {s.strikeCount} strike{s.strikeCount === 1 ? "" : "s"} this month (−{s.strikePenalty} pts)
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <h3 className="section-title">Concerns this month</h3>
+      {monthConcerns.length === 0 ? (
+        <div className="empty-state">No concerns logged this month.</div>
+      ) : (
+        Object.keys(byCoach)
+          .sort()
+          .map((coach) => (
+            <div key={coach} style={{ marginBottom: "1.5rem" }}>
+              <h4 className="section-title" style={{ fontSize: "0.95rem", marginBottom: "0.5rem" }}>
+                {coach}
+              </h4>
+              {byCoach[coach].map((c) => (
+                <ConcernRow
+                  key={c.id}
+                  concern={c}
+                  now={now}
+                  eligibleForStrike={eligibleIds.includes(c.id)}
+                  onResolve={handleResolve}
+                  onReply={handleReply}
+                  onStrike={handleStrike}
+                  onEvidenceUploaded={onConcernUpdated}
+                />
+              ))}
+            </div>
+          ))
+      )}
+
+      <h3 className="section-title" style={{ marginTop: "2rem" }}>
+        Rotation tracking
+      </h3>
+      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem", alignItems: "center" }}>
+        <input className="date-input" type="date" value={newWeek} onChange={(e) => setNewWeek(e.target.value)} />
+        <button className="back-link" type="button" onClick={handleAddWeek}>
+          + Track this week
+        </button>
+      </div>
+      {trackedWeekKeys.length === 0 ? (
+        <div className="empty-state">No rotation weeks tracked this month yet.</div>
+      ) : (
+        trackedWeekKeys.map((weekKey) => (
+          <RotationWeekRow
+            key={weekKey}
+            weekKey={weekKey}
+            coaches={coaches}
+            rows={rotationChecks.filter((r) => r.weekKey === weekKey)}
+            onToggle={handleRotationToggle}
+            onEvidenceUploaded={onRotationUpserted}
+          />
+        ))
+      )}
+    </div>
+  );
+}
+
 export default function RegisterHubBoard({ data, coaches }) {
   const [schools, setSchools] = useState(data.schools || []);
   const [huddles, setHuddles] = useState(data.huddles || []);
   const [dailyChecks, setDailyChecks] = useState(data.dailyChecks || []);
   const [concerns, setConcerns] = useState(data.concerns || []);
+  const [rotationChecks, setRotationChecks] = useState(data.rotationChecks || []);
 
   function handleDailyCheckSaved(dailyCheck, newConcerns, schoolId, date) {
     const id = `${date}:${schoolId}`;
     setDailyChecks((prev) => [...prev.filter((d) => d.id !== id), dailyCheck]);
     setConcerns((prev) => [...prev.filter((c) => c.dailyCheckId !== id), ...newConcerns]);
   }
+
+  function handleConcernUpdated(concern) {
+    setConcerns((prev) => prev.map((c) => (c.id === concern.id ? concern : c)));
+  }
+
+  function handleRotationUpserted(row) {
+    setRotationChecks((prev) => [...prev.filter((r) => r.id !== row.id), row]);
+  }
+
+  // Tracker scores every coach who has a school assigned in Register Hub's
+  // own Setup, not just the ones already in the external current-state
+  // roster — a coach can be set up here before (or without) appearing in
+  // that Google-Sheets-driven sync, and the compliance snapshot would
+  // otherwise silently omit them.
+  const trackerCoaches = [...new Set([...(coaches || []), ...schools.map((s) => s.coach).filter(Boolean)])].sort(
+    (a, b) => a.localeCompare(b)
+  );
 
   const topics = [
     {
@@ -620,7 +1047,16 @@ export default function RegisterHubBoard({ data, coaches }) {
       key: "tracker",
       label: "Tracker",
       description: "Every concern, coach replies, resolve-by dates and strikes.",
-      render: () => <ComingSoon>Tracker is coming in a later phase of the Register Hub.</ComingSoon>,
+      render: () => (
+        <Tracker
+          coaches={trackerCoaches}
+          concerns={concerns}
+          dailyChecks={dailyChecks}
+          rotationChecks={rotationChecks}
+          onConcernUpdated={handleConcernUpdated}
+          onRotationUpserted={handleRotationUpserted}
+        />
+      ),
     },
     {
       key: "scorecard",

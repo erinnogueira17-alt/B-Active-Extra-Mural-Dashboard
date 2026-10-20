@@ -94,6 +94,11 @@ export async function POST(request) {
       resolveBy: computeResolveBy(c.urgency, school, { now, referenceDate: parseDateKey(date) }),
       note: c.note ? String(c.note).trim() : "",
       status: "open",
+      reply: "",
+      repliedAt: null,
+      strike: false,
+      strikeAt: null,
+      evidenceFiles: [],
     });
   }
 

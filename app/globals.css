@@ -639,3 +639,24 @@ tbody tr:hover {
   border-color: var(--gold);
   color: var(--gold);
 }
+
+.compliance-badge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.25rem 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.compliance-badge.compliant {
+  border-color: var(--positive);
+  color: var(--positive);
+}
+
+.compliance-badge.non-compliant {
+  border-color: var(--negative);
+  color: var(--negative);
+}
