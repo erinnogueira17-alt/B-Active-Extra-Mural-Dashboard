@@ -5,6 +5,7 @@ import OverviewBoard from "./OverviewBoard.jsx";
 import EnrolmentBoard from "./EnrolmentBoard.jsx";
 import CurrentStateBoard from "./CurrentStateBoard.jsx";
 import CoachScorecardBoard from "./CoachScorecardBoard.jsx";
+import RegisterHubBoard from "./RegisterHubBoard.jsx";
 import LandingSummary from "./LandingSummary.jsx";
 import GlobalSearch from "./GlobalSearch.jsx";
 
@@ -28,6 +29,11 @@ const BOARDS = [
     key: "coach-scorecard",
     label: "Coach Scorecard",
     description: "Rate coaches weekly or monthly and see each coach's score.",
+  },
+  {
+    key: "register-hub",
+    label: "Register Hub",
+    description: "Daily register checks, concerns, rotation and the compliance scorecard.",
   },
 ];
 
@@ -111,7 +117,7 @@ function SyncNowButton() {
   );
 }
 
-export default function AppShell({ growth, currentState, currentStateHistory, coachScorecard }) {
+export default function AppShell({ growth, currentState, currentStateHistory, coachScorecard, registerHub }) {
   const [board, setBoard] = useState(null);
 
   const anyLive = growth.source === "live" || currentState.source === "live";
@@ -179,6 +185,7 @@ export default function AppShell({ growth, currentState, currentStateHistory, co
       {board === "coach-scorecard" && (
         <CoachScorecardBoard data={coachScorecard.data} coaches={coaches} />
       )}
+      {board === "register-hub" && <RegisterHubBoard data={registerHub.data} coaches={coaches} />}
 
       <footer className="sync-footer">
         <span>
