@@ -35,11 +35,13 @@ const emptySchoolForm = {
 function SchoolForm({ editing, coaches, onSaved, onCancel }) {
   const [form, setForm] = useState(editing || emptySchoolForm);
   const [status, setStatus] = useState("idle");
+  const [errorDetail, setErrorDetail] = useState("");
 
   async function handleSubmit(e) {
     e.preventDefault();
     if (!form.name.trim()) {
       setStatus("error");
+      setErrorDetail("A school name is required.");
       return;
     }
     setStatus("saving");
@@ -53,8 +55,9 @@ function SchoolForm({ editing, coaches, onSaved, onCancel }) {
       if (!body.ok) throw new Error(body.error || "Save failed");
       onSaved(body.school);
       if (!editing) setForm(emptySchoolForm);
-    } catch {
+    } catch (err) {
       setStatus("error");
+      setErrorDetail(err.message || "");
     }
   }
 
@@ -129,7 +132,7 @@ function SchoolForm({ editing, coaches, onSaved, onCancel }) {
       )}
       {status === "error" && (
         <p className="kpi-sub" style={{ color: "var(--negative)", marginTop: "0.5rem" }}>
-          Couldn&apos;t save — check the school name and try again.
+          {errorDetail || "Couldn't save — try again."}
         </p>
       )}
     </form>

@@ -1,12 +1,20 @@
 import { NextResponse } from "next/server";
 import { canonicalizeCoachName } from "../../../../lib/scorecard.js";
 import { DAYS_OF_WEEK } from "../../../../lib/registerHub.js";
-import { readRegisterHub, writeRegisterHub } from "../../../../lib/registerHubStore.js";
+import { readRegisterHub, writeRegisterHub, randomId } from "../../../../lib/registerHubStore.js";
 
 export const dynamic = "force-dynamic";
 
-function randomId() {
-  return `school_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+// Only http(s) links are accepted — registerLink is later rendered as a
+// plain <a href> (Setup's school list and Daily check's "Open register"
+// link), so anything else (a "javascript:" URL, most prominently) would
+// execute in the dashboard's own origin when another viewer clicked it.
+function isHttpUrl(raw) {
+  try {
+    return ["http:", "https:"].includes(new URL(raw).protocol);
+  } catch {
+    return false;
+  }
 }
 
 // Upserts a school: an id in the body updates that school in place,
@@ -35,17 +43,32 @@ export async function POST(request) {
       { status: 400 }
     );
   }
+  const trimmedLink = registerLink ? String(registerLink).trim() : "";
+  if (trimmedLink && !isHttpUrl(trimmedLink)) {
+    return NextResponse.json(
+      { ok: false, error: "Register link must be a valid http(s) URL" },
+      { status: 400 }
+    );
+  }
 
   const school = {
-    id: id && typeof id === "string" ? id : randomId(),
+    id: id && typeof id === "string" ? id : randomId("school"),
     name: name.trim(),
     lessonDay,
     coach: coach ? canonicalizeCoachName(String(coach).trim()) : "",
-    registerLink: registerLink ? String(registerLink).trim() : "",
+    registerLink: trimmedLink,
     active: active !== false,
   };
 
-  const data = await readRegisterHub();
+  let data;
+  try {
+    data = await readRegisterHub();
+  } catch {
+    return NextResponse.json(
+      { ok: false, error: "Could not read existing Register Hub data — try again" },
+      { status: 500 }
+    );
+  }
   const nextSchools = [...data.schools.filter((s) => s.id !== school.id), school].sort((a, b) =>
     a.name.localeCompare(b.name)
   );
@@ -71,7 +94,15 @@ export async function DELETE(request) {
     return NextResponse.json({ ok: false, error: "Missing id" }, { status: 400 });
   }
 
-  const data = await readRegisterHub();
+  let data;
+  try {
+    data = await readRegisterHub();
+  } catch {
+    return NextResponse.json(
+      { ok: false, error: "Could not read existing Register Hub data — try again" },
+      { status: 500 }
+    );
+  }
   if (!data.schools.some((s) => s.id === id)) {
     return NextResponse.json({ ok: false, error: "No matching school found" }, { status: 404 });
   }

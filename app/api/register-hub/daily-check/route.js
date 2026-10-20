@@ -5,13 +5,9 @@ import {
   computeResolveBy,
   parseDateKey,
 } from "../../../../lib/registerHub.js";
-import { readRegisterHub, writeRegisterHub } from "../../../../lib/registerHubStore.js";
+import { readRegisterHub, writeRegisterHub, randomId } from "../../../../lib/registerHubStore.js";
 
 export const dynamic = "force-dynamic";
-
-function randomId(prefix) {
-  return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-}
 
 // Upserts one school's check for one day: the evening-admin booleans plus
 // whatever concerns were tapped for it. Keyed by (date, schoolId) — saving
@@ -41,7 +37,15 @@ export async function POST(request) {
     return NextResponse.json({ ok: false, error: "concerns must be an array" }, { status: 400 });
   }
 
-  const data = await readRegisterHub();
+  let data;
+  try {
+    data = await readRegisterHub();
+  } catch {
+    return NextResponse.json(
+      { ok: false, error: "Could not read existing Register Hub data — try again" },
+      { status: 500 }
+    );
+  }
   const school = data.schools.find((s) => s.id === schoolId);
   if (!school) {
     return NextResponse.json({ ok: false, error: "No matching school found" }, { status: 404 });

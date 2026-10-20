@@ -1,14 +1,10 @@
 import { NextResponse } from "next/server";
 import { canonicalizeCoachName } from "../../../../lib/scorecard.js";
-import { readRegisterHub, writeRegisterHub } from "../../../../lib/registerHubStore.js";
+import { readRegisterHub, writeRegisterHub, randomId } from "../../../../lib/registerHubStore.js";
 
 export const dynamic = "force-dynamic";
 
 const HUDDLE_DAYS = ["thursday", "friday"];
-
-function randomId() {
-  return `huddle_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-}
 
 // Huddles are a small, fully-replaced config (a handful of day/time/coach
 // groups) rather than a growing collection, so the whole list is replaced
@@ -47,14 +43,22 @@ export async function POST(request) {
       ? h.coaches.map((c) => canonicalizeCoachName(String(c).trim())).filter(Boolean)
       : [];
     cleanHuddles.push({
-      id: h.id && typeof h.id === "string" ? h.id : randomId(),
+      id: h.id && typeof h.id === "string" ? h.id : randomId("huddle"),
       day: h.day,
       time: h.time.trim(),
       coaches,
     });
   }
 
-  const data = await readRegisterHub();
+  let data;
+  try {
+    data = await readRegisterHub();
+  } catch {
+    return NextResponse.json(
+      { ok: false, error: "Could not read existing Register Hub data — try again" },
+      { status: 500 }
+    );
+  }
   await writeRegisterHub({ ...data, huddles: cleanHuddles });
 
   return NextResponse.json({ ok: true, huddles: cleanHuddles });
