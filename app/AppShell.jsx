@@ -65,28 +65,49 @@ function BoardTiles({ onNavigate }) {
 // which is what "sync now" needs to actually mean *now*.
 function SyncNowButton() {
   const [state, setState] = useState("idle"); // idle | syncing | error
+  const [detail, setDetail] = useState("");
 
   async function handleClick() {
     setState("syncing");
+    setDetail("");
     try {
       const res = await fetch("/api/manual-sync", { method: "POST", cache: "no-store" });
       const body = await res.json().catch(() => ({ ok: false }));
-      if (!body.ok) throw new Error("Sync failed");
+      if (!body.ok) {
+        // /api/manual-sync already captures each sync job's real failure
+        // reason (a bad Google Sheet ID, a revoked service account, a
+        // missing env var, ...) — surface it here instead of a generic
+        // "Sync failed", so whoever clicked the button can see why without
+        // needing to go dig through server logs.
+        const failures = [
+          body.growth && !body.growth.ok && `Enrolment sync: ${body.growth.error || "failed"}`,
+          body.currentState &&
+            !body.currentState.ok &&
+            `Current State sync: ${body.currentState.error || "failed"}`,
+        ].filter(Boolean);
+        throw new Error(failures.join(" · ") || body.error || "Sync failed");
+      }
       window.location.reload();
-    } catch {
+    } catch (err) {
       setState("error");
+      setDetail(err.message || "");
     }
   }
 
   return (
-    <button
-      className="sync-now-button"
-      onClick={handleClick}
-      disabled={state === "syncing"}
-      type="button"
-    >
-      {state === "syncing" ? "Syncing…" : state === "error" ? "Sync failed — retry" : "Sync now"}
-    </button>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap", justifyContent: "center" }}>
+      <button
+        className="sync-now-button"
+        onClick={handleClick}
+        disabled={state === "syncing"}
+        type="button"
+      >
+        {state === "syncing" ? "Syncing…" : state === "error" ? "Sync failed — retry" : "Sync now"}
+      </button>
+      {state === "error" && detail && (
+        <span style={{ color: "var(--negative)", fontSize: "0.7rem" }}>{detail}</span>
+      )}
+    </span>
   );
 }
 
