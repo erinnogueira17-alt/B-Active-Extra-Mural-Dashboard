@@ -822,10 +822,10 @@ function CoachPhotoButton({ coach, hasPhoto, onPhotoSaved }) {
 
 function CoachCard({ coach, ovr, stats, photoUrl, compliant, strikeCount }) {
   const statItems = [
-    { value: stats.pas, label: "PAS" },
-    { value: stats.dri, label: "DRI" },
-    { value: stats.def, label: "DEF" },
-    { value: stats.sho, label: "SHO" },
+    { value: stats.pas, label: "Register" },
+    { value: stats.dri, label: "Rotation" },
+    { value: stats.def, label: "Concerns" },
+    { value: stats.sho, label: "Marketing photo of the day" },
   ];
 
   return (
@@ -866,7 +866,7 @@ function CoachCard({ coach, ovr, stats, photoUrl, compliant, strikeCount }) {
       <div
         style={{
           marginTop: "8px",
-          height: "100px",
+          height: "76px",
           flexShrink: 0,
           borderRadius: "14px",
           overflow: "hidden",
@@ -919,11 +919,11 @@ function CoachCard({ coach, ovr, stats, photoUrl, compliant, strikeCount }) {
         }}
       >
         {statItems.map((st) => (
-          <div key={st.label} style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
-            <span style={{ fontFamily: '"Barlow Condensed", Arial, sans-serif', fontWeight: 800, fontSize: "24px", lineHeight: 1 }}>
+          <div key={st.label} style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+            <span style={{ fontFamily: '"Barlow Condensed", Arial, sans-serif', fontWeight: 800, fontSize: "22px", lineHeight: 1 }}>
               {st.value}
             </span>
-            <span style={{ fontFamily: '"Barlow Condensed", Arial, sans-serif', fontWeight: 700, fontSize: "16px", color: "#7a0d12" }}>
+            <span style={{ fontFamily: '"Barlow Condensed", Arial, sans-serif', fontWeight: 700, fontSize: "11px", lineHeight: 1.1, letterSpacing: "0.04em", textTransform: "uppercase", color: "#7a0d12" }}>
               {st.label}
             </span>
           </div>
