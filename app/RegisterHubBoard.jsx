@@ -10,7 +10,7 @@ import {
   parseDateKey,
   todayDateKey,
 } from "../lib/registerHub.js";
-import { listCoachNameAliases } from "../lib/scorecard.js";
+import { canonicalizeCoachName, listCoachNameAliases } from "../lib/scorecard.js";
 import {
   ReviewQueue,
   ScoreSnapshot,
@@ -659,20 +659,28 @@ function DailyCheck({ schools, dailyChecks, concerns, onDailyCheckSaved }) {
   );
 }
 
-export default function RegisterHubBoard({ data, coaches }) {
+export default function RegisterHubBoard({ data, coaches: rosterCoaches }) {
   const [schools, setSchools] = useState(data.schools || []);
   const [huddles, setHuddles] = useState(data.huddles || []);
   const [dailyChecks, setDailyChecks] = useState(data.dailyChecks || []);
   const [concerns, setConcerns] = useState(data.concerns || []);
   const [rotationChecks, setRotationChecks] = useState(data.rotationChecks || []);
   const [photoOfDay, setPhotoOfDay] = useState(data.photoOfDay || []);
+  const [coachPhotos, setCoachPhotos] = useState(data.coachPhotos || {});
+
+  // The roster can list a coach under an alias (e.g. "Lucky" next to
+  // "Nhlanhla"), so names are canonicalized and de-duplicated before anything
+  // here renders them.
+  const coaches = [...new Set((rosterCoaches || []).map((c) => canonicalizeCoachName(c)))].sort((a, b) =>
+    a.localeCompare(b)
+  );
 
   // Scorecard scores every coach with a school in Register Hub's own Setup,
   // not just the Google-Sheets roster, so a coach set up here can't be
   // silently left out of the compliance numbers.
-  const trackerCoaches = [...new Set([...(coaches || []), ...schools.map((s) => s.coach).filter(Boolean)])].sort(
-    (a, b) => a.localeCompare(b)
-  );
+  const trackerCoaches = [
+    ...new Set([...coaches, ...schools.map((s) => canonicalizeCoachName(s.coach || "")).filter(Boolean)]),
+  ].sort((a, b) => a.localeCompare(b));
 
   function handleDailyCheckSaved(dailyCheck, newConcerns, schoolId, date) {
     const id = `${date}:${schoolId}`;
@@ -718,6 +726,10 @@ export default function RegisterHubBoard({ data, coaches }) {
 
   function handlePhotoSaved(record) {
     setPhotoOfDay((prev) => [...prev.filter((p) => p.date !== record.date), record].sort((x, y) => x.date.localeCompare(y.date)));
+  }
+
+  function handleCoachPhotoSaved(coach, imageUrl) {
+    setCoachPhotos((prev) => ({ ...prev, [coach]: imageUrl }));
   }
 
   function handleRotationUpserted(row) {
@@ -780,6 +792,8 @@ export default function RegisterHubBoard({ data, coaches }) {
           dailyChecks={dailyChecks}
           rotationChecks={rotationChecks}
           onRotationUpserted={handleRotationUpserted}
+          coachPhotos={coachPhotos}
+          onCoachPhotoSaved={handleCoachPhotoSaved}
         />
       ),
     },
