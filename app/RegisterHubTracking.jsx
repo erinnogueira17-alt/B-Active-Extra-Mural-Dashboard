@@ -19,6 +19,7 @@ import {
 } from "../lib/registerHubReport.js";
 import { renderSnapshotPng } from "../lib/registerHubImage.js";
 import { downloadWeeklyReportPdf } from "../lib/registerHubPdf.js";
+import { buildDayPoster, renderDayPosterPng } from "../lib/registerHubPoster.js";
 
 const ZA_TIME = { timeZone: "Africa/Johannesburg", dateStyle: "medium", timeStyle: "short" };
 
@@ -363,6 +364,22 @@ export function SnapshotTopic({ schools, concerns }) {
     }
   }
 
+  async function handlePoster() {
+    const poster = buildDayPoster(date || todayDateKey(), schools);
+    if (!poster.dayName) {
+      setStatus("No lessons fall on a weekend — pick a weekday.");
+      return;
+    }
+    setStatus("Creating day poster…");
+    try {
+      const blob = await renderDayPosterPng(poster);
+      downloadBlob(blob, `b-active-schools-${poster.dateKey}.png`);
+      setStatus("Day poster downloaded — send it to the group.");
+    } catch {
+      setStatus("Couldn't create the poster — try again.");
+    }
+  }
+
   async function handleCopy() {
     try {
       await navigator.clipboard.writeText(snapshotAsText(snapshot));
@@ -385,6 +402,9 @@ export function SnapshotTopic({ schools, concerns }) {
         </button>
         <button className="back-link" type="button" style={{ marginBottom: 0 }} onClick={handleCopy}>
           Copy as text
+        </button>
+        <button className="back-link" type="button" style={{ marginBottom: 0 }} onClick={handlePoster}>
+          Download day poster (PNG)
         </button>
         {status && <span className="kpi-sub">{status}</span>}
       </div>
