@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
-import { strikeEligibleConcerns } from "../../../../lib/registerHub.js";
-import { readRegisterHub, writeRegisterHub } from "../../../../lib/registerHubStore.js";
+import { strikeDueConcerns } from "../../../../lib/registerHub.js";
+import { readRegisterHub, writeRegisterHub, randomId } from "../../../../lib/registerHubStore.js";
 
 export const dynamic = "force-dynamic";
 
-const ACTIONS = ["resolve", "reply", "strike"];
+const ACTIONS = ["resolve", "unresolve", "communicate", "strike"];
 
-// One action per call, by concern id: resolve it, log a coach reply, or
-// issue a strike (only when strikeEligibleConcerns agrees it's due — issuing
-// a strike is a manual confirm, not something this route does on its own).
+// One action per call, by concern id: mark resolved or reopened, log a
+// communication from the coach, or issue a strike (only when
+// strikeDueConcerns agrees it's due — issuing a strike is a manual confirm,
+// not something this route does on its own).
 export async function PATCH(request) {
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
     return NextResponse.json({ ok: false, error: "Vercel Blob not configured" }, { status: 500 });
@@ -21,15 +22,15 @@ export async function PATCH(request) {
     return NextResponse.json({ ok: false, error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { id, action, reply } = body || {};
+  const { id, action, text } = body || {};
   if (!id) {
     return NextResponse.json({ ok: false, error: "Missing id" }, { status: 400 });
   }
   if (!ACTIONS.includes(action)) {
     return NextResponse.json({ ok: false, error: `action must be one of: ${ACTIONS.join(", ")}` }, { status: 400 });
   }
-  if (action === "reply" && !(reply && String(reply).trim())) {
-    return NextResponse.json({ ok: false, error: "Reply text is required" }, { status: 400 });
+  if (action === "communicate" && !(text && String(text).trim())) {
+    return NextResponse.json({ ok: false, error: "Message text is required" }, { status: 400 });
   }
 
   let data;
@@ -51,16 +52,23 @@ export async function PATCH(request) {
   let updated = concern;
   if (action === "resolve") {
     updated = { ...concern, status: "resolved", resolvedAt: now.toISOString() };
-  } else if (action === "reply") {
-    updated = { ...concern, reply: String(reply).trim(), repliedAt: now.toISOString() };
+  } else if (action === "unresolve") {
+    updated = { ...concern, status: "open", resolvedAt: null };
+  } else if (action === "communicate") {
+    const message = {
+      id: randomId("comm"),
+      date: now.toISOString().slice(0, 10),
+      text: String(text).trim(),
+      createdAt: now.toISOString(),
+    };
+    updated = { ...concern, communications: [...(concern.communications || []), message] };
   } else if (action === "strike") {
-    const eligibleIds = strikeEligibleConcerns(data.concerns, now);
-    if (!eligibleIds.includes(id)) {
+    if (!strikeDueConcerns(data.concerns).includes(id)) {
       return NextResponse.json(
         {
           ok: false,
           error:
-            "This concern isn't strike-eligible yet — it needs a repeat at the same school, still unresolved 14 days after it was first logged",
+            "This concern isn't strike-due — it needs the same concern logged again in the following week while still unresolved",
         },
         { status: 400 }
       );
