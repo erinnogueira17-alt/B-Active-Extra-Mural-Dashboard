@@ -382,6 +382,38 @@ function NameAliases() {
   );
 }
 
+function ImportSchools({ onSchoolsChange }) {
+  const [status, setStatus] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function handleImport() {
+    if (!confirm("Load the register school list into Setup? Schools already there are left alone.")) return;
+    setBusy(true);
+    setStatus("");
+    try {
+      const res = await fetch("/api/register-hub/import-schools", { method: "POST" });
+      const body = await res.json().catch(() => ({ ok: false }));
+      if (!body.ok) throw new Error(body.error || "Import failed");
+      onSchoolsChange(body.schools);
+      setStatus(`Added ${body.added} school rows; ${body.skipped} were already there.`);
+    } catch (err) {
+      setStatus(err.message || "Import failed — try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="card" style={{ marginBottom: "1.25rem", display: "flex", flexWrap: "wrap", gap: "0.75rem", alignItems: "center" }}>
+      <strong style={{ color: "var(--text)" }}>Register school list</strong>
+      <button className="back-link" type="button" style={{ marginBottom: 0 }} onClick={handleImport} disabled={busy}>
+        {busy ? "Loading…" : "Load register schools"}
+      </button>
+      {status && <span className="kpi-sub">{status}</span>}
+    </div>
+  );
+}
+
 function Setup({ schools, huddles, coaches, onSchoolsChange, onHuddlesChange }) {
   const [editingSchool, setEditingSchool] = useState(null);
 
@@ -405,6 +437,7 @@ function Setup({ schools, huddles, coaches, onSchoolsChange, onHuddlesChange }) 
 
   return (
     <div>
+      <ImportSchools onSchoolsChange={onSchoolsChange} />
       <SchoolForm
         key={editingSchool?.id || "new"}
         editing={editingSchool}
