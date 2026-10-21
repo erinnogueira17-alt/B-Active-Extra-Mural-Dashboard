@@ -19,6 +19,7 @@ import {
 } from "../lib/registerHubReport.js";
 import { renderSnapshotPng } from "../lib/registerHubImage.js";
 import { downloadWeeklyReportPdf } from "../lib/registerHubPdf.js";
+import { buildDayPoster, renderDayPosterPng } from "../lib/registerHubPoster.js";
 
 const ZA_TIME = { timeZone: "Africa/Johannesburg", dateStyle: "medium", timeStyle: "short" };
 
@@ -363,6 +364,22 @@ export function SnapshotTopic({ schools, concerns }) {
     }
   }
 
+  async function handlePoster() {
+    const poster = buildDayPoster(date || todayDateKey(), schools);
+    if (!poster.dayName) {
+      setStatus("No lessons fall on a weekend — pick a weekday.");
+      return;
+    }
+    setStatus("Creating day poster…");
+    try {
+      const blob = await renderDayPosterPng(poster);
+      downloadBlob(blob, `b-active-schools-${poster.dateKey}.png`);
+      setStatus("Day poster downloaded — send it to the group.");
+    } catch {
+      setStatus("Couldn't create the poster — try again.");
+    }
+  }
+
   async function handleCopy() {
     try {
       await navigator.clipboard.writeText(snapshotAsText(snapshot));
@@ -386,6 +403,9 @@ export function SnapshotTopic({ schools, concerns }) {
         <button className="back-link" type="button" style={{ marginBottom: 0 }} onClick={handleCopy}>
           Copy as text
         </button>
+        <button className="back-link" type="button" style={{ marginBottom: 0 }} onClick={handlePoster}>
+          Download day poster (PNG)
+        </button>
         {status && <span className="kpi-sub">{status}</span>}
       </div>
 
@@ -394,16 +414,18 @@ export function SnapshotTopic({ schools, concerns }) {
       ) : (
         <div className="card-grid">
           {snapshot.sections.map((section) => (
-            <div key={section.coach} className="card">
-              <h4 className="section-title" style={{ fontSize: "1rem", marginBottom: "0.5rem" }}>
-                {section.coach}
+            <div key={section.school} className="card">
+              <h4 className="section-title" style={{ fontSize: "1rem", marginBottom: "0.25rem" }}>
+                {section.school}
               </h4>
+              <p className="kpi-sub" style={{ marginBottom: "0.6rem" }}>
+                Coach: {section.coach}
+              </p>
               {section.items.map((item, idx) => (
                 <div key={idx} style={{ marginBottom: "0.5rem" }}>
-                  <strong style={{ color: "var(--text)" }}>{item.school}</strong>
-                  <div>
-                    <span className={`concern-tag ${item.urgency}`}>{item.type}</span>
-                  </div>
+                  <span className={`concern-tag ${item.urgency}`}>
+                    {idx + 1}. {item.type}
+                  </span>
                   {item.note && <p className="kpi-sub">{item.note}</p>}
                 </div>
               ))}
