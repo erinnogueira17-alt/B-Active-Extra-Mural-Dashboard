@@ -16,6 +16,7 @@ import {
   ScoreSnapshot,
   SnapshotTopic,
   StrikeTracker,
+  PhotoOfTheDay,
   WeeklyReport,
 } from "./RegisterHubTracking.jsx";
 
@@ -756,6 +757,12 @@ export default function RegisterHubBoard({ data, coaches }) {
       label: "Strike tracker",
       description: "Which coaches have a strike due, and the strikes already issued.",
       render: () => <StrikeTracker concerns={concerns} onStrike={handleStrike} />,
+    },
+    {
+      key: "photo",
+      label: "Photo of the day",
+      description: "Upload a coach's photo and lay it out as the B-Active photo of the day post.",
+      render: () => <PhotoOfTheDay schools={schools} />,
     },
     {
       key: "scorecard",

@@ -3,7 +3,9 @@
 import { useState } from "react";
 import {
   addDaysKey,
+  dayKeyOf,
   isConcernOverdue,
+  parseDateKey,
   strikeDueConcerns,
   todayDateKey,
   weekStartKey,
@@ -20,6 +22,7 @@ import {
 import { renderSnapshotPng } from "../lib/registerHubImage.js";
 import { downloadWeeklyReportPdf } from "../lib/registerHubPdf.js";
 import { buildDayPoster, renderDayPosterPng } from "../lib/registerHubPoster.js";
+import { photoFileToUrl, renderMarketingPhotoPng } from "../lib/registerHubMarketingPhoto.js";
 
 const ZA_TIME = { timeZone: "Africa/Johannesburg", dateStyle: "medium", timeStyle: "short" };
 
@@ -432,6 +435,116 @@ export function SnapshotTopic({ schools, concerns }) {
             </div>
           ))}
         </div>
+      )}
+    </div>
+  );
+}
+
+export function PhotoOfTheDay({ schools }) {
+  const [date, setDate] = useState(() => todayDateKey());
+  const [schoolId, setSchoolId] = useState("");
+  const [file, setFile] = useState(null);
+  const [resultBlob, setResultBlob] = useState(null);
+  const [resultUrl, setResultUrl] = useState("");
+  const [status, setStatus] = useState("");
+
+  const day = dayKeyOf(parseDateKey(date || todayDateKey()));
+  const options = schools
+    .filter((s) => s.active !== false && s.lessonDay === day)
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const chosen = options.find((s) => s.id === schoolId) || null;
+
+  function clearResult() {
+    if (resultUrl) URL.revokeObjectURL(resultUrl);
+    setResultUrl("");
+    setResultBlob(null);
+    setStatus("");
+  }
+
+  async function handleCreate() {
+    if (!chosen || !file) {
+      setStatus("Choose a school and upload a photo first.");
+      return;
+    }
+    setStatus("Creating post…");
+    const photoSrc = photoFileToUrl(file);
+    try {
+      const blob = await renderMarketingPhotoPng({ photoSrc, coach: chosen.coach, school: chosen.name });
+      if (resultUrl) URL.revokeObjectURL(resultUrl);
+      setResultBlob(blob);
+      setResultUrl(URL.createObjectURL(blob));
+      setStatus("Post ready — download it below.");
+    } catch (err) {
+      setStatus(err.message || "Couldn't create the post — try again.");
+    } finally {
+      URL.revokeObjectURL(photoSrc);
+    }
+  }
+
+  function handleDownload() {
+    if (!resultBlob || !chosen) return;
+    const schoolSlug = chosen.name.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").toLowerCase();
+    downloadBlob(resultBlob, `marketing-photo-${date}-${schoolSlug}.png`);
+  }
+
+  return (
+    <div>
+      <p className="section-subtitle">
+        Choose the day and the school, upload the coach&apos;s photo, and the hub lays it out in the B-Active photo of
+        the day style.
+      </p>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.6rem", alignItems: "center", marginBottom: "0.75rem" }}>
+        <input
+          className="date-input"
+          type="date"
+          value={date}
+          onChange={(e) => {
+            setDate(e.target.value);
+            setSchoolId("");
+            clearResult();
+          }}
+        />
+        <select
+          className="date-input"
+          value={schoolId}
+          onChange={(e) => {
+            setSchoolId(e.target.value);
+            clearResult();
+          }}
+        >
+          <option value="">{options.length ? "Choose school" : "No schools on this day"}</option>
+          {options.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name} — {s.coach || "no coach"}
+            </option>
+          ))}
+        </select>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(e) => {
+            setFile(e.target.files?.[0] || null);
+            clearResult();
+          }}
+        />
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.6rem", alignItems: "center" }}>
+        <button className="back-link" type="button" style={{ marginBottom: 0 }} onClick={handleCreate}>
+          Create post
+        </button>
+        {resultBlob && (
+          <button className="back-link" type="button" style={{ marginBottom: 0 }} onClick={handleDownload}>
+            Download PNG
+          </button>
+        )}
+        {status && <span className="kpi-sub">{status}</span>}
+      </div>
+      {resultUrl && (
+        <img
+          src={resultUrl}
+          alt="Photo of the day post"
+          style={{ display: "block", width: "100%", maxWidth: "360px", marginTop: "1rem", borderRadius: "14px", border: "1px solid var(--border)" }}
+        />
       )}
     </div>
   );
