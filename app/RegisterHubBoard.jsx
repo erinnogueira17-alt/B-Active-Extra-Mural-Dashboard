@@ -16,6 +16,7 @@ import {
   ScoreSnapshot,
   SnapshotTopic,
   StrikeTracker,
+  PhotoOfTheDay,
   WeeklyReport,
 } from "./RegisterHubTracking.jsx";
 
@@ -664,6 +665,7 @@ export default function RegisterHubBoard({ data, coaches }) {
   const [dailyChecks, setDailyChecks] = useState(data.dailyChecks || []);
   const [concerns, setConcerns] = useState(data.concerns || []);
   const [rotationChecks, setRotationChecks] = useState(data.rotationChecks || []);
+  const [photoOfDay, setPhotoOfDay] = useState(data.photoOfDay || []);
 
   // Scorecard scores every coach with a school in Register Hub's own Setup,
   // not just the Google-Sheets roster, so a coach set up here can't be
@@ -714,6 +716,10 @@ export default function RegisterHubBoard({ data, coaches }) {
     }
   }
 
+  function handlePhotoSaved(record) {
+    setPhotoOfDay((prev) => [...prev.filter((p) => p.date !== record.date), record].sort((x, y) => x.date.localeCompare(y.date)));
+  }
+
   function handleRotationUpserted(row) {
     setRotationChecks((prev) => [...prev.filter((r) => r.id !== row.id), row]);
   }
@@ -758,6 +764,12 @@ export default function RegisterHubBoard({ data, coaches }) {
       render: () => <StrikeTracker concerns={concerns} onStrike={handleStrike} />,
     },
     {
+      key: "photo",
+      label: "Photo of the day",
+      description: "Upload a coach's photo and lay it out as the B-Active photo of the day post.",
+      render: () => <PhotoOfTheDay schools={schools} photoOfDay={photoOfDay} onPhotoSaved={handlePhotoSaved} />,
+    },
+    {
       key: "scorecard",
       label: "Scorecard",
       description: "Monthly compliance per coach, rotation ticks and the points score.",
@@ -793,5 +805,17 @@ export default function RegisterHubBoard({ data, coaches }) {
     },
   ];
 
-  return <TopicBoard topics={topics} />;
+  return (
+    <div className="rh-theme">
+      <div className="rh-hero">
+        <img className="rh-logo" src="/bactive-logo.png" alt="B-Active logo" />
+        <div>
+          <small>B-Active Group · Extra Murals</small>
+          <h1>Register Check</h1>
+          <p>Daily evening admin &amp; register compliance</p>
+        </div>
+      </div>
+      <TopicBoard topics={topics} />
+    </div>
+  );
 }

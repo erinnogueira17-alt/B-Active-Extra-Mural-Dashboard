@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap");
 /* B-Active brand theme: black throughout — page background, card
    surfaces, everything — with white/off-white for text and brand red as
    the one accent color (buttons, active states, links). The logo's gold
@@ -661,4 +662,97 @@ tbody tr:hover {
 .compliance-badge.non-compliant {
   border-color: var(--negative);
   color: var(--negative);
+}
+
+/* Register Hub look: red striped hero band, condensed uppercase headings,
+   dark tiles with gold accents. Scoped so other boards keep their styling. */
+.rh-theme {
+  font-family: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.rh-hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  margin: 0 0 1.25rem;
+  padding: 1.25rem 1.5rem 1.4rem;
+  border-radius: 14px 14px 0 0;
+  border-bottom: 4px solid var(--gold);
+  color: #fff;
+  background:
+    repeating-linear-gradient(115deg, rgba(255,255,255,0.05) 0 14px, transparent 14px 28px),
+    linear-gradient(120deg, #e8302f 0%, #d01f24 48%, #a3131a 100%);
+}
+.rh-logo {
+  flex: none;
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 3px var(--gold), 0 6px 16px rgba(60, 0, 0, 0.35);
+  padding: 6px;
+  object-fit: contain;
+}
+.rh-hero small {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #f7dfa0;
+}
+.rh-hero h1 {
+  margin: 2px 0 2px;
+  font-family: "Barlow Condensed", "Arial Narrow", Arial, sans-serif;
+  font-weight: 800;
+  font-size: clamp(2rem, 6vw, 3rem);
+  line-height: 1;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+.rh-hero p {
+  margin: 0;
+  font-size: 0.95rem;
+  opacity: 0.9;
+}
+.rh-theme .section-title {
+  font-family: "Barlow Condensed", "Arial Narrow", Arial, sans-serif;
+  font-weight: 700;
+  font-size: 1.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-left: 4px solid var(--gold);
+}
+.rh-theme .board-landing {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+.rh-theme .board-tile {
+  background: #1d1716;
+  border: 1px solid #3a2f2c;
+  border-top: 3px solid var(--red);
+  border-radius: 14px;
+  padding: 1.1rem 1.1rem 1rem;
+}
+.rh-theme .board-tile:hover {
+  border-color: var(--gold);
+  border-top-color: var(--gold);
+}
+.rh-theme .board-tile-label {
+  font-family: "Barlow Condensed", "Arial Narrow", Arial, sans-serif;
+  font-weight: 700;
+  font-size: 1.35rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #f5edea;
+}
+.rh-theme .board-tile-arrow {
+  color: var(--gold);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.rh-theme .card {
+  background: #1d1716;
+  border: 1px solid #3a2f2c;
+  border-left: 4px solid var(--gold);
+  border-radius: 14px;
 }
