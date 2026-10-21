@@ -394,16 +394,16 @@ export function SnapshotTopic({ schools, concerns }) {
       ) : (
         <div className="card-grid">
           {snapshot.sections.map((section) => (
-            <div key={section.coach} className="card">
-              <h4 className="section-title" style={{ fontSize: "1rem", marginBottom: "0.5rem" }}>
-                {section.coach}
+            <div key={section.school} className="card">
+              <h4 className="section-title" style={{ fontSize: "1rem", marginBottom: "0.25rem" }}>
+                {section.school}
               </h4>
+              <p className="kpi-sub" style={{ marginBottom: "0.6rem" }}>
+                Coach: {section.coach}
+              </p>
               {section.items.map((item, idx) => (
                 <div key={idx} style={{ marginBottom: "0.5rem" }}>
-                  <strong style={{ color: "var(--text)" }}>{item.school}</strong>
-                  <div>
-                    <span className={`concern-tag ${item.urgency}`}>{item.type}</span>
-                  </div>
+                  <span className={`concern-tag ${item.urgency}`}>{item.type}</span>
                   {item.note && <p className="kpi-sub">{item.note}</p>}
                 </div>
               ))}
