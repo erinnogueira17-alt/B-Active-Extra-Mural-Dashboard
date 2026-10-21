@@ -403,7 +403,9 @@ export function SnapshotTopic({ schools, concerns }) {
               </p>
               {section.items.map((item, idx) => (
                 <div key={idx} style={{ marginBottom: "0.5rem" }}>
-                  <span className={`concern-tag ${item.urgency}`}>{item.type}</span>
+                  <span className={`concern-tag ${item.urgency}`}>
+                    {idx + 1}. {item.type}
+                  </span>
                   {item.note && <p className="kpi-sub">{item.note}</p>}
                 </div>
               ))}
