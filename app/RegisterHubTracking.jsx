@@ -788,7 +788,152 @@ function RotationWeekRow({ weekKey, coaches, rows, onToggle, onEvidenceUploaded 
   );
 }
 
-export function ScoreSnapshot({ coaches, concerns, dailyChecks, rotationChecks, onRotationUpserted }) {
+// The upload control sits beneath the card, not on its face, so the card
+// stays clean for screenshots.
+function CoachPhotoButton({ coach, hasPhoto, onPhotoSaved }) {
+  const [status, setStatus] = useState("");
+
+  async function handleFile(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setStatus("Uploading…");
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("coach", coach);
+    try {
+      const res = await fetch("/api/register-hub/coach-photo", { method: "POST", body: formData });
+      const body = await res.json().catch(() => ({ ok: false }));
+      if (!body.ok) throw new Error(body.error || "Upload failed");
+      onPhotoSaved(coach, body.imageUrl);
+      setStatus("");
+    } catch (err) {
+      setStatus(err.message || "Upload failed");
+    }
+  }
+
+  return (
+    <label style={{ fontSize: "12px", fontWeight: 700, cursor: "pointer", color: "#7a0d12", textDecoration: "underline" }}>
+      {status || (hasPhoto ? "Change photo" : "Add photo")}
+      <input type="file" accept="image/*" style={{ display: "none" }} onChange={handleFile} />
+    </label>
+  );
+}
+
+function CoachCard({ coach, ovr, stats, photoUrl, compliant, strikeCount }) {
+  const statItems = [
+    { value: stats.pas, label: "PAS" },
+    { value: stats.dri, label: "DRI" },
+    { value: stats.def, label: "DEF" },
+    { value: stats.sho, label: "SHO" },
+  ];
+
+  return (
+    <div
+      style={{
+        width: "100%",
+        maxWidth: "280px",
+        aspectRatio: "5 / 7",
+        borderRadius: "22px",
+        padding: "14px",
+        display: "flex",
+        flexDirection: "column",
+        color: "#1a0c08",
+        background: "linear-gradient(170deg, #ffd23f 0%, #ff8a1f 38%, #e8302f 72%, #9e1119 100%)",
+        border: "3px solid #f7dfa0",
+        boxShadow: "0 0 24px rgba(255, 190, 60, 0.45)",
+        position: "relative",
+        overflow: "hidden",
+        fontFamily: '"Barlow", system-ui, sans-serif',
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div>
+          <div style={{ fontFamily: '"Barlow Condensed", "Arial Narrow", Arial, sans-serif', fontWeight: 800, fontSize: "54px", lineHeight: 1 }}>
+            {ovr}
+          </div>
+          <div style={{ fontFamily: '"Barlow Condensed", Arial, sans-serif', fontWeight: 700, fontSize: "15px", letterSpacing: "0.12em" }}>
+            OVR
+          </div>
+        </div>
+        <img
+          src="/bactive-logo.png"
+          alt=""
+          style={{ width: "44px", height: "44px", borderRadius: "50%", background: "#fff", padding: "3px", boxShadow: "0 0 0 2px #d6b25a" }}
+        />
+      </div>
+
+      <div
+        style={{
+          marginTop: "8px",
+          height: "100px",
+          flexShrink: 0,
+          borderRadius: "14px",
+          overflow: "hidden",
+          background: "rgba(90, 10, 16, 0.35)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          boxShadow: "inset 0 0 0 2px rgba(255,255,255,0.35)",
+        }}
+      >
+        {photoUrl ? (
+          <img src={photoUrl} alt={coach} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        ) : (
+          <span style={{ fontFamily: '"Barlow Condensed", Arial, sans-serif', fontWeight: 800, fontSize: "96px", color: "#f7dfa0" }}>
+            {coach.charAt(0)}
+          </span>
+        )}
+      </div>
+
+      <div
+        style={{
+          marginTop: "10px",
+          fontFamily: '"Barlow Condensed", "Arial Narrow", Arial, sans-serif',
+          fontWeight: 800,
+          fontSize: "28px",
+          lineHeight: 1,
+          flexShrink: 0,
+          textTransform: "uppercase",
+          letterSpacing: "0.02em",
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+        }}
+      >
+        {coach}
+      </div>
+      <div style={{ flexShrink: 0, fontSize: "12px", fontWeight: 600, letterSpacing: "0.12em", color: "#7a0d12", textTransform: "uppercase" }}>
+        Coach · {compliant ? "Compliant" : "Needs support"}
+        {strikeCount > 0 ? ` · ${strikeCount} strike${strikeCount === 1 ? "" : "s"}` : ""}
+      </div>
+
+      <div
+        style={{
+          marginTop: "auto",
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: "4px 14px",
+          borderTop: "2px solid rgba(122, 13, 18, 0.45)",
+          paddingTop: "8px",
+        }}
+      >
+        {statItems.map((st) => (
+          <div key={st.label} style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
+            <span style={{ fontFamily: '"Barlow Condensed", Arial, sans-serif', fontWeight: 800, fontSize: "24px", lineHeight: 1 }}>
+              {st.value}
+            </span>
+            <span style={{ fontFamily: '"Barlow Condensed", Arial, sans-serif', fontWeight: 700, fontSize: "16px", color: "#7a0d12" }}>
+              {st.label}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function ScoreSnapshot({ coaches, concerns, dailyChecks, rotationChecks, onRotationUpserted, coachPhotos = {}, onCoachPhotoSaved }) {
   const [monthKey, setMonthKey] = useState(() => currentMonthKey());
   const [newWeek, setNewWeek] = useState("");
 
@@ -870,44 +1015,35 @@ export function ScoreSnapshot({ coaches, concerns, dailyChecks, rotationChecks, 
       {scorecards.length === 0 ? (
         <div className="empty-state">No coaches yet — add schools with a coach in Setup first.</div>
       ) : (
-        <div className="card-grid" style={{ marginBottom: "1.5rem" }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(230px, 1fr))",
+            gap: "1.25rem",
+            justifyItems: "center",
+            marginBottom: "1.5rem",
+          }}
+        >
           {scorecards.map((s) => (
-            <div key={s.coach} className="card">
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "0.5rem" }}>
-                <h4 className="section-title" style={{ fontSize: "1rem", marginBottom: "0.4rem" }}>
-                  {s.coach}
-                </h4>
-                <span className={`compliance-badge ${s.compliant.overall ? "compliant" : "non-compliant"}`}>
-                  {s.compliant.overall ? "Compliant" : "Not compliant"}
-                </span>
-              </div>
-              <div className="kpi-grid">
-                <div className="kpi-card">
-                  <div className="kpi-label">Total</div>
-                  <div className="kpi-value">{Math.round(s.total)}/100</div>
-                </div>
-                <div className="kpi-card">
-                  <div className="kpi-label">Register score</div>
-                  <div className="kpi-value">{Math.round(s.registerScore)}/60</div>
-                </div>
-                <div className="kpi-card">
-                  <div className="kpi-label">Concerns ({s.compliant.concerns ? "✓" : "✗"})</div>
-                  <div className="kpi-value">{monthConcernCount(s.coach)}</div>
-                </div>
-                <div className="kpi-card">
-                  <div className="kpi-label">Rotation ({s.compliant.rotations ? "✓" : "✗"})</div>
-                  <div className="kpi-value">{Math.round(s.rotationScore)}/20</div>
-                </div>
-                <div className="kpi-card">
-                  <div className="kpi-label">Photo ({s.compliant.photo ? "✓" : "✗"})</div>
-                  <div className="kpi-value">{Math.round(s.photoScore)}/20</div>
-                </div>
-              </div>
-              {s.strikeCount > 0 && (
-                <p className="kpi-sub" style={{ color: "var(--negative)", marginTop: "0.4rem" }}>
-                  {s.strikeCount} strike{s.strikeCount === 1 ? "" : "s"} this month (−{s.strikePenalty} pts)
-                </p>
-              )}
+            <div key={s.coach} style={{ width: "100%", maxWidth: "280px", display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
+              <CoachCard
+                coach={s.coach}
+                ovr={Math.round(s.total)}
+                stats={{
+                  pas: Math.round((s.registerScore / 60) * 100),
+                  dri: Math.round((s.rotationScore / 20) * 100),
+                  def: Math.max(0, 100 - 20 * monthConcernCount(s.coach)),
+                  sho: Math.round((s.photoScore / 20) * 100),
+                }}
+                photoUrl={coachPhotos[s.coach] || ""}
+                compliant={s.compliant.overall}
+                strikeCount={s.strikeCount}
+              />
+              <CoachPhotoButton
+                coach={s.coach}
+                hasPhoto={Boolean(coachPhotos[s.coach])}
+                onPhotoSaved={onCoachPhotoSaved}
+              />
             </div>
           ))}
         </div>

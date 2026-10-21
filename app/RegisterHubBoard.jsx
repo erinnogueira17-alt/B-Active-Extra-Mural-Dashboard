@@ -666,6 +666,7 @@ export default function RegisterHubBoard({ data, coaches }) {
   const [concerns, setConcerns] = useState(data.concerns || []);
   const [rotationChecks, setRotationChecks] = useState(data.rotationChecks || []);
   const [photoOfDay, setPhotoOfDay] = useState(data.photoOfDay || []);
+  const [coachPhotos, setCoachPhotos] = useState(data.coachPhotos || {});
 
   // Scorecard scores every coach with a school in Register Hub's own Setup,
   // not just the Google-Sheets roster, so a coach set up here can't be
@@ -718,6 +719,10 @@ export default function RegisterHubBoard({ data, coaches }) {
 
   function handlePhotoSaved(record) {
     setPhotoOfDay((prev) => [...prev.filter((p) => p.date !== record.date), record].sort((x, y) => x.date.localeCompare(y.date)));
+  }
+
+  function handleCoachPhotoSaved(coach, imageUrl) {
+    setCoachPhotos((prev) => ({ ...prev, [coach]: imageUrl }));
   }
 
   function handleRotationUpserted(row) {
@@ -780,6 +785,8 @@ export default function RegisterHubBoard({ data, coaches }) {
           dailyChecks={dailyChecks}
           rotationChecks={rotationChecks}
           onRotationUpserted={handleRotationUpserted}
+          coachPhotos={coachPhotos}
+          onCoachPhotoSaved={handleCoachPhotoSaved}
         />
       ),
     },
