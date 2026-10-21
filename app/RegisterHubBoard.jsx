@@ -793,5 +793,17 @@ export default function RegisterHubBoard({ data, coaches }) {
     },
   ];
 
-  return <TopicBoard topics={topics} />;
+  return (
+    <div className="rh-theme">
+      <div className="rh-hero">
+        <img className="rh-logo" src="/bactive-logo.png" alt="B-Active logo" />
+        <div>
+          <small>B-Active Group · Extra Murals</small>
+          <h1>Register Check</h1>
+          <p>Daily evening admin &amp; register compliance</p>
+        </div>
+      </div>
+      <TopicBoard topics={topics} />
+    </div>
+  );
 }
