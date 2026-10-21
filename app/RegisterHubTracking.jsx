@@ -433,8 +433,8 @@ export function WeeklyReport({ schools, dailyChecks, concerns }) {
   return (
     <div>
       <p className="section-subtitle">
-        Monday to Friday register compliance for each coach. A coach is compliant for the week when no register
-        concerns were logged against them.
+        Monday to Friday register compliance for each coach. A coach is non-compliant for as long as any of their
+        register concerns is still open.
       </p>
       <div style={{ display: "flex", flexWrap: "wrap", gap: "0.6rem", alignItems: "center", marginBottom: "1rem" }}>
         <input className="date-input" type="date" value={anyDate} onChange={(e) => setAnyDate(e.target.value)} />
@@ -455,8 +455,8 @@ export function WeeklyReport({ schools, dailyChecks, concerns }) {
             </h3>
             {report.needsSupport.map((r) => (
               <p key={r.coach} className="kpi-sub" style={{ margin: "0.2rem 0" }}>
-                <strong style={{ color: "var(--text)" }}>{r.coach}</strong> — {r.concerns.length} register concern
-                {r.concerns.length === 1 ? "" : "s"}
+                <strong style={{ color: "var(--text)" }}>{r.coach}</strong> — {r.openConcerns} open register concern
+                {r.openConcerns === 1 ? "" : "s"}
                 {r.strikes > 0 ? `, ${r.strikes} strike${r.strikes === 1 ? "" : "s"} issued` : ""}
               </p>
             ))}
@@ -487,7 +487,7 @@ export function WeeklyReport({ schools, dailyChecks, concerns }) {
                       <td>{r.checked}</td>
                       <td>{r.unchecked}</td>
                       <td>{r.eveningPct == null ? "–" : `${r.eveningPct}%`}</td>
-                      <td>{r.concerns.length}</td>
+                      <td>{r.loggedThisWeek}</td>
                       <td>{r.openConcerns}</td>
                       <td>{r.strikes}</td>
                       <td>
