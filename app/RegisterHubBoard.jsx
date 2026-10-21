@@ -665,6 +665,7 @@ export default function RegisterHubBoard({ data, coaches }) {
   const [dailyChecks, setDailyChecks] = useState(data.dailyChecks || []);
   const [concerns, setConcerns] = useState(data.concerns || []);
   const [rotationChecks, setRotationChecks] = useState(data.rotationChecks || []);
+  const [photoOfDay, setPhotoOfDay] = useState(data.photoOfDay || []);
 
   // Scorecard scores every coach with a school in Register Hub's own Setup,
   // not just the Google-Sheets roster, so a coach set up here can't be
@@ -715,6 +716,10 @@ export default function RegisterHubBoard({ data, coaches }) {
     }
   }
 
+  function handlePhotoSaved(record) {
+    setPhotoOfDay((prev) => [...prev.filter((p) => p.date !== record.date), record].sort((x, y) => x.date.localeCompare(y.date)));
+  }
+
   function handleRotationUpserted(row) {
     setRotationChecks((prev) => [...prev.filter((r) => r.id !== row.id), row]);
   }
@@ -762,7 +767,7 @@ export default function RegisterHubBoard({ data, coaches }) {
       key: "photo",
       label: "Photo of the day",
       description: "Upload a coach's photo and lay it out as the B-Active photo of the day post.",
-      render: () => <PhotoOfTheDay schools={schools} />,
+      render: () => <PhotoOfTheDay schools={schools} photoOfDay={photoOfDay} onPhotoSaved={handlePhotoSaved} />,
     },
     {
       key: "scorecard",

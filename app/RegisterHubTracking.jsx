@@ -440,19 +440,22 @@ export function SnapshotTopic({ schools, concerns }) {
   );
 }
 
-export function PhotoOfTheDay({ schools }) {
+export function PhotoOfTheDay({ schools, photoOfDay = [], onPhotoSaved }) {
   const [date, setDate] = useState(() => todayDateKey());
   const [schoolId, setSchoolId] = useState("");
   const [file, setFile] = useState(null);
   const [resultBlob, setResultBlob] = useState(null);
   const [resultUrl, setResultUrl] = useState("");
   const [status, setStatus] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const day = dayKeyOf(parseDateKey(date || todayDateKey()));
   const options = schools
     .filter((s) => s.active !== false && s.lessonDay === day)
     .sort((a, b) => a.name.localeCompare(b.name));
   const chosen = options.find((s) => s.id === schoolId) || null;
+  const savedForDay = photoOfDay.find((p) => p.date === date) || null;
+  const savedList = [...photoOfDay].sort((a, b) => b.date.localeCompare(a.date));
 
   function clearResult() {
     if (resultUrl) URL.revokeObjectURL(resultUrl);
@@ -473,11 +476,34 @@ export function PhotoOfTheDay({ schools }) {
       if (resultUrl) URL.revokeObjectURL(resultUrl);
       setResultBlob(blob);
       setResultUrl(URL.createObjectURL(blob));
-      setStatus("Post ready — download it below.");
+      setStatus("Post ready — save it for this day or download it.");
     } catch (err) {
       setStatus(err.message || "Couldn't create the post — try again.");
     } finally {
       URL.revokeObjectURL(photoSrc);
+    }
+  }
+
+  async function handleSave() {
+    if (!resultBlob || !chosen) return;
+    setSaving(true);
+    setStatus("Saving for this day…");
+    try {
+      const formData = new FormData();
+      formData.append("file", resultBlob, "post.png");
+      formData.append("date", date);
+      formData.append("schoolId", chosen.id);
+      formData.append("school", chosen.name);
+      formData.append("coach", chosen.coach || "");
+      const res = await fetch("/api/register-hub/photo-of-day", { method: "POST", body: formData });
+      const body = await res.json().catch(() => ({ ok: false }));
+      if (!body.ok) throw new Error(body.error || "Save failed");
+      onPhotoSaved(body.record);
+      setStatus(`Saved for ${formatDateLong(date)}.`);
+    } catch (err) {
+      setStatus(err.message || "Couldn't save — try again.");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -490,8 +516,8 @@ export function PhotoOfTheDay({ schools }) {
   return (
     <div>
       <p className="section-subtitle">
-        Choose the day and the school, upload the coach&apos;s photo, and the hub lays it out in the B-Active photo of
-        the day style.
+        Choose the day and the school, upload the coach&apos;s photo, create the post, then save it for the day so
+        there&apos;s a record.
       </p>
       <div style={{ display: "flex", flexWrap: "wrap", gap: "0.6rem", alignItems: "center", marginBottom: "0.75rem" }}>
         <input
@@ -533,6 +559,11 @@ export function PhotoOfTheDay({ schools }) {
           Create post
         </button>
         {resultBlob && (
+          <button className="back-link" type="button" style={{ marginBottom: 0 }} onClick={handleSave} disabled={saving}>
+            {saving ? "Saving…" : "Save for this day"}
+          </button>
+        )}
+        {resultBlob && (
           <button className="back-link" type="button" style={{ marginBottom: 0 }} onClick={handleDownload}>
             Download PNG
           </button>
@@ -545,6 +576,61 @@ export function PhotoOfTheDay({ schools }) {
           alt="Photo of the day post"
           style={{ display: "block", width: "100%", maxWidth: "360px", marginTop: "1rem", borderRadius: "14px", border: "1px solid var(--border)" }}
         />
+      )}
+
+      <h3 className="section-title" style={{ marginTop: "2rem" }}>
+        Saved for {formatDateLong(date)}
+      </h3>
+      {savedForDay ? (
+        <div className="card" style={{ maxWidth: "360px" }}>
+          <img
+            src={savedForDay.imageUrl}
+            alt={`Saved post for ${savedForDay.school}`}
+            style={{ display: "block", width: "100%", borderRadius: "10px", marginBottom: "0.6rem" }}
+          />
+          <p className="kpi-sub" style={{ marginBottom: "0.3rem" }}>
+            {savedForDay.school} · {savedForDay.coach || "no coach"}
+          </p>
+          <a href={savedForDay.imageUrl} target="_blank" rel="noreferrer">
+            Open full image ↗
+          </a>
+        </div>
+      ) : (
+        <div className="empty-state">No photo saved for this day yet.</div>
+      )}
+
+      <h3 className="section-title" style={{ marginTop: "2rem" }}>
+        All saved photos
+      </h3>
+      {savedList.length === 0 ? (
+        <div className="empty-state">No photos saved yet.</div>
+      ) : (
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>School</th>
+                <th>Coach</th>
+                <th>Image</th>
+              </tr>
+            </thead>
+            <tbody>
+              {savedList.map((p) => (
+                <tr key={p.id}>
+                  <td>{p.date}</td>
+                  <td>{p.school}</td>
+                  <td>{p.coach || "—"}</td>
+                  <td>
+                    <a href={p.imageUrl} target="_blank" rel="noreferrer">
+                      Open ↗
+                    </a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );
