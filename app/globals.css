@@ -238,6 +238,8 @@ a {
   font-size: 1.15rem;
   font-weight: 600;
   margin: 0 0 1rem;
+  border-left: 3px solid var(--gold);
+  padding-left: 0.6rem;
 }
 
 .section-subtitle {
