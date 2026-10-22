@@ -1,4 +1,69 @@
-@import url("https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;0,800;1,700;1,800&family=Barlow:wght@400;500;600&display=swap");
+
+/* Player cards on the Register Hub scorecard. Same design as the Register
+   Check artifact: a spinning card with a gold rim, a red face with wave
+   lines, a gold plate for the name and stats, and a B-Active back. */
+.pcgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:22px 18px;margin:6px 0 10px}
+.pcwrap{display:flex;flex-direction:column;align-items:center;gap:4px}
+.pcard{width:100%;max-width:240px;aspect-ratio:5/7;position:relative;perspective:1100px}
+.pc-spin{position:absolute;inset:0;transform-style:preserve-3d;animation:pcspin 14s linear infinite;animation-delay:var(--d,0s)}
+.pcard:hover .pc-spin{animation-play-state:paused}
+@keyframes pcspin{from{transform:rotateY(0deg)}to{transform:rotateY(-360deg)}}
+@media (prefers-reduced-motion:reduce){.pc-spin{animation:none}}
+.pc-face{position:absolute;inset:0;border-radius:20px;padding:6px;background:linear-gradient(155deg,#fff1b8 0%,#e9c766 22%,#c9961a 55%,#f3d985 75%,#a8802a 100%);box-shadow:0 0 0 1px rgba(120,80,0,.35),0 10px 24px rgba(120,10,10,.28),0 0 28px rgba(232,120,40,.25);-webkit-backface-visibility:hidden;backface-visibility:hidden}
+.pc-back{transform:rotateY(180deg)}
+.pcard.top .pc-face{box-shadow:0 0 0 1px rgba(120,80,0,.35),0 12px 30px rgba(120,10,10,.35),0 0 46px rgba(255,170,60,.65)}
+.pc-in{position:relative;height:100%;border-radius:15px;overflow:hidden;background-size:100% 100%,cover;color:#fff}
+.pc-bin{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+.pc-blogo{width:58%;aspect-ratio:1;border-radius:50%;background:#fff url(/bactive-logo.png) center/80% no-repeat;box-shadow:0 0 0 3px #d6b25a,0 6px 16px rgba(60,0,0,.35)}
+.pc-bt{font-family:"Barlow Condensed",Arial,sans-serif;font-style:italic;font-weight:800;font-size:30px;letter-spacing:.06em;color:#fff6d6;margin-top:14px;text-shadow:0 2px 6px rgba(60,0,0,.5)}
+.pc-bs{font-family:"Barlow Condensed",Arial,sans-serif;font-weight:700;font-size:13px;letter-spacing:.24em;color:#f7dfa0}
+.pc-tag{position:absolute;top:0;left:50%;transform:translateX(-50%);background:linear-gradient(90deg,#c9961a,#fff1b8,#c9961a);color:#3a2600;font-family:"Barlow Condensed",Arial,sans-serif;font-weight:800;font-size:11px;letter-spacing:.12em;padding:3px 12px;border-radius:0 0 9px 9px;white-space:nowrap;z-index:4}
+.pc-ovr{position:absolute;top:18px;left:14px;z-index:3;display:flex;flex-direction:column;align-items:center;line-height:1;text-shadow:0 2px 6px rgba(60,0,0,.55)}
+.pc-ovr b{font-family:"Barlow Condensed",Arial,sans-serif;font-style:italic;font-weight:800;font-size:46px;color:#fff6d6}
+.pc-ovr span{font-family:"Barlow Condensed",Arial,sans-serif;font-weight:700;font-size:13px;letter-spacing:.14em;color:#f7dfa0}
+.pc-ovr i{font-style:normal;font-family:"Barlow Condensed",Arial,sans-serif;font-weight:700;font-size:15px;margin-top:6px;background:rgba(40,0,0,.35);border:1px solid rgba(247,223,160,.6);border-radius:999px;padding:1px 8px;color:#fff1b8}
+.pc-logo{position:absolute;top:16px;right:12px;width:40px;height:40px;border-radius:50%;z-index:3;background:#fff url(/bactive-logo.png) center/80% no-repeat;box-shadow:0 0 0 2px #d6b25a}
+.pc-photo{position:absolute;left:0;right:0;top:13%;height:46%;display:flex;align-items:flex-end;justify-content:center;z-index:2}
+.pc-photo img{width:78%;height:100%;object-fit:cover;object-position:center top;border-radius:10px 10px 0 0;-webkit-mask-image:linear-gradient(to bottom,#000 70%,transparent 100%);mask-image:linear-gradient(to bottom,#000 70%,transparent 100%);filter:saturate(1.08) contrast(1.04)}
+.pc-photo svg{width:70%;height:auto}
+.pc-flag{position:absolute;top:50%;left:50%;transform:translateX(-50%);z-index:3;background:rgba(30,6,6,.72);color:#fff1b8;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.pc-cam{position:absolute;right:10px;top:54%;z-index:5;width:32px;height:32px;border-radius:50%;background:rgba(30,6,6,.65);color:#fff1b8;display:grid;place-items:center;cursor:pointer;border:1px solid rgba(247,223,160,.6)}
+.pc-cam svg{width:17px;height:17px}
+.pc-cam:hover{background:rgba(30,6,6,.85)}
+.pc-plate{position:absolute;left:0;right:0;bottom:0;height:40%;z-index:3;background:linear-gradient(180deg,#f7d97a 0%,#e9c04e 45%,#d6a834 100%);clip-path:polygon(0 8%,50% 0,100% 8%,100% 100%,0 100%);padding:12px 10px 8px;display:flex;flex-direction:column;justify-content:flex-end;gap:4px}
+.pc-name{font-family:"Barlow Condensed",Arial,sans-serif;font-weight:800;font-style:italic;font-size:22px;line-height:1;color:#1f1715;text-transform:uppercase;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pc-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;border-top:1px solid rgba(120,70,0,.35);padding-top:5px}
+.pc-st{display:flex;flex-direction:column;align-items:center;line-height:1.05}
+.pc-st b{font-family:"Barlow Condensed",Arial,sans-serif;font-weight:800;font-size:19px;color:#a3131a}
+.pc-st span{font-family:"Barlow Condensed",Arial,sans-serif;font-weight:700;font-size:11px;letter-spacing:.08em;color:#4a2f00}
+
+/* Coach of the Month banner and rotation grid on the Register Hub scorecard,
+   copied from the Register Check artifact's look. */
+.rh-cotm{display:flex;align-items:center;gap:18px;flex-wrap:wrap;border-radius:16px;padding:18px 20px;margin:0 0 16px;color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.35);background:repeating-linear-gradient(115deg,rgba(255,255,255,.04) 0 14px,transparent 14px 28px),linear-gradient(120deg,#2a1a12,#4a2a12 60%,#6b4413);border-bottom:4px solid #d6b25a}
+.rh-cotm-badge{width:62px;height:62px;flex:none;border-radius:50%;display:grid;place-items:center;font-family:"Barlow Condensed",Arial,sans-serif;font-size:28px;font-weight:700;color:#3a2600;background:radial-gradient(circle at 35% 30%,#fbe6a6,#d6b25a 60%,#a8842c);box-shadow:0 0 0 3px rgba(255,255,255,.25)}
+.rh-cotm-body{flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:2px}
+.rh-cotm-body small{font-size:11.5px;letter-spacing:.16em;font-weight:600;color:#f7dfa0}
+.rh-cotm-name{font-family:"Barlow Condensed",Arial,sans-serif;font-size:34px;font-weight:700;line-height:1.05;text-transform:uppercase}
+.rh-cotm-meta{font-size:14px;opacity:.9}
+.rh-rot{border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:12px 14px;margin-bottom:14px;background:rgba(255,255,255,.03)}
+.rh-rot-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.rh-rot-h h4{margin:0;font-family:"Barlow Condensed",Arial,sans-serif;font-size:19px;font-weight:700}
+.rh-slots{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr));gap:12px}
+.rh-slot{border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:8px 12px;background:rgba(255,255,255,.03)}
+.rh-slot-h{display:flex;justify-content:space-between;align-items:center;gap:8px;padding-bottom:4px;border-bottom:2px solid #d6b25a;margin-bottom:2px;font-size:14px}
+.rh-slot-h b{font-family:"Barlow Condensed",Arial,sans-serif;font-size:17px;color:#ff8f86}
+.rh-rrow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.rh-rrow:last-child{border-bottom:0}
+.rh-rrow>span:first-child{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rh-rticks{display:flex;gap:6px;flex:none;justify-content:flex-end}
+.rh-rtick{border:1px solid rgba(255,255,255,.25);background:transparent;color:inherit;border-radius:999px;padding:3px 10px 3px 6px;font-size:12.5px;display:inline-flex;align-items:center;gap:5px;cursor:pointer}
+.rh-box{width:15px;height:15px;border-radius:4px;border:1.5px solid #bbb;display:grid;place-items:center;font-size:10px;line-height:1}
+.rh-rtick[aria-pressed="true"]{background:rgba(95,203,144,.18);border-color:#5fcb90;color:#5fcb90;font-weight:600}
+.rh-rtick[aria-pressed="true"] .rh-box{background:#5fcb90;border-color:#5fcb90;color:#111}
+.rh-others{margin-top:10px}
+.rh-others summary{cursor:pointer;font-weight:600;font-size:14px;padding:4px 0}
+
 /* B-Active brand theme: black throughout — page background, card
    surfaces, everything — with white/off-white for text and brand red as
    the one accent color (buttons, active states, links). The logo's gold

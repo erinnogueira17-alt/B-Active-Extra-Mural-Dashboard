@@ -415,6 +415,38 @@ function ImportSchools({ onSchoolsChange }) {
   );
 }
 
+function ImportHuddles({ onHuddlesChange }) {
+  const [status, setStatus] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function handleImport() {
+    if (!confirm("Load the rotation huddles into Setup? Huddles already there are left alone.")) return;
+    setBusy(true);
+    setStatus("");
+    try {
+      const res = await fetch("/api/register-hub/import-huddles", { method: "POST" });
+      const body = await res.json().catch(() => ({ ok: false }));
+      if (!body.ok) throw new Error(body.error || "Import failed");
+      onHuddlesChange(body.huddles);
+      setStatus(`Added ${body.added} huddle${body.added === 1 ? "" : "s"}; ${body.skipped} were already there.`);
+    } catch (err) {
+      setStatus(err.message || "Import failed — try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="card" style={{ marginBottom: "1.25rem", display: "flex", flexWrap: "wrap", gap: "0.75rem", alignItems: "center" }}>
+      <strong style={{ color: "var(--text)" }}>Rotation huddles</strong>
+      <button className="back-link" type="button" style={{ marginBottom: 0 }} onClick={handleImport} disabled={busy}>
+        {busy ? "Loading…" : "Load rotation huddles"}
+      </button>
+      {status && <span className="kpi-sub">{status}</span>}
+    </div>
+  );
+}
+
 function Setup({ schools, huddles, coaches, onSchoolsChange, onHuddlesChange }) {
   const [editingSchool, setEditingSchool] = useState(null);
 
@@ -447,6 +479,7 @@ function Setup({ schools, huddles, coaches, onSchoolsChange, onHuddlesChange }) 
         onCancel={() => setEditingSchool(null)}
       />
       <SchoolList schools={schools} onEdit={setEditingSchool} onDelete={handleDeleteSchool} />
+      <ImportHuddles onHuddlesChange={onHuddlesChange} />
       <HuddleEditor huddles={huddles} onHuddlesChange={onHuddlesChange} />
       <NameAliases />
     </div>
@@ -788,6 +821,7 @@ export default function RegisterHubBoard({ data, coaches: rosterCoaches }) {
       render: () => (
         <ScoreSnapshot
           coaches={trackerCoaches}
+          huddles={huddles}
           concerns={concerns}
           dailyChecks={dailyChecks}
           rotationChecks={rotationChecks}
