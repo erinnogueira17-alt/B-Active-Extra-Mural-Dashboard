@@ -24,15 +24,15 @@
 .pc-ovr span{font-family:"Barlow Condensed",Arial,sans-serif;font-weight:700;font-size:13px;letter-spacing:.14em;color:#f7dfa0}
 .pc-ovr i{font-style:normal;font-family:"Barlow Condensed",Arial,sans-serif;font-weight:700;font-size:15px;margin-top:6px;background:rgba(40,0,0,.35);border:1px solid rgba(247,223,160,.6);border-radius:999px;padding:1px 8px;color:#fff1b8}
 .pc-logo{position:absolute;top:16px;right:12px;width:40px;height:40px;border-radius:50%;z-index:3;background:#fff url(/bactive-logo.png) center/80% no-repeat;box-shadow:0 0 0 2px #d6b25a}
-.pc-photo{position:absolute;left:0;right:0;top:14%;height:58%;display:flex;align-items:flex-end;justify-content:center;z-index:2}
+.pc-photo{position:absolute;left:0;right:0;top:13%;height:46%;display:flex;align-items:flex-end;justify-content:center;z-index:2}
 .pc-photo img{width:78%;height:100%;object-fit:cover;object-position:center top;border-radius:10px 10px 0 0;-webkit-mask-image:linear-gradient(to bottom,#000 70%,transparent 100%);mask-image:linear-gradient(to bottom,#000 70%,transparent 100%);filter:saturate(1.08) contrast(1.04)}
 .pc-photo svg{width:70%;height:auto}
-.pc-flag{position:absolute;top:56%;left:50%;transform:translateX(-50%);z-index:3;background:rgba(30,6,6,.72);color:#fff1b8;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap}
-.pc-cam{position:absolute;right:10px;top:60%;z-index:5;width:32px;height:32px;border-radius:50%;background:rgba(30,6,6,.65);color:#fff1b8;display:grid;place-items:center;cursor:pointer;border:1px solid rgba(247,223,160,.6)}
+.pc-flag{position:absolute;top:50%;left:50%;transform:translateX(-50%);z-index:3;background:rgba(30,6,6,.72);color:#fff1b8;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.pc-cam{position:absolute;right:10px;top:54%;z-index:5;width:32px;height:32px;border-radius:50%;background:rgba(30,6,6,.65);color:#fff1b8;display:grid;place-items:center;cursor:pointer;border:1px solid rgba(247,223,160,.6)}
 .pc-cam svg{width:17px;height:17px}
 .pc-cam:hover{background:rgba(30,6,6,.85)}
-.pc-plate{position:absolute;left:0;right:0;bottom:0;height:30%;z-index:3;background:linear-gradient(180deg,#f7d97a 0%,#e9c04e 45%,#d6a834 100%);clip-path:polygon(0 14%,50% 0,100% 14%,100% 100%,0 100%);padding:16px 14px 10px;display:flex;flex-direction:column;justify-content:flex-end;gap:4px}
-.pc-name{font-family:"Barlow Condensed",Arial,sans-serif;font-weight:800;font-style:italic;font-size:24px;line-height:1;color:#1f1715;text-transform:uppercase;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pc-plate{position:absolute;left:0;right:0;bottom:0;height:40%;z-index:3;background:linear-gradient(180deg,#f7d97a 0%,#e9c04e 45%,#d6a834 100%);clip-path:polygon(0 8%,50% 0,100% 8%,100% 100%,0 100%);padding:12px 10px 8px;display:flex;flex-direction:column;justify-content:flex-end;gap:4px}
+.pc-name{font-family:"Barlow Condensed",Arial,sans-serif;font-weight:800;font-style:italic;font-size:22px;line-height:1;color:#1f1715;text-transform:uppercase;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pc-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;border-top:1px solid rgba(120,70,0,.35);padding-top:5px}
 .pc-st{display:flex;flex-direction:column;align-items:center;line-height:1.05}
 .pc-st b{font-family:"Barlow Condensed",Arial,sans-serif;font-weight:800;font-size:19px;color:#a3131a}
