@@ -38,6 +38,32 @@
 .pc-st b{font-family:"Barlow Condensed",Arial,sans-serif;font-weight:800;font-size:19px;color:#a3131a}
 .pc-st span{font-family:"Barlow Condensed",Arial,sans-serif;font-weight:700;font-size:11px;letter-spacing:.08em;color:#4a2f00}
 
+/* Coach of the Month banner and rotation grid on the Register Hub scorecard,
+   copied from the Register Check artifact's look. */
+.rh-cotm{display:flex;align-items:center;gap:18px;flex-wrap:wrap;border-radius:16px;padding:18px 20px;margin:0 0 16px;color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.35);background:repeating-linear-gradient(115deg,rgba(255,255,255,.04) 0 14px,transparent 14px 28px),linear-gradient(120deg,#2a1a12,#4a2a12 60%,#6b4413);border-bottom:4px solid #d6b25a}
+.rh-cotm-badge{width:62px;height:62px;flex:none;border-radius:50%;display:grid;place-items:center;font-family:"Barlow Condensed",Arial,sans-serif;font-size:28px;font-weight:700;color:#3a2600;background:radial-gradient(circle at 35% 30%,#fbe6a6,#d6b25a 60%,#a8842c);box-shadow:0 0 0 3px rgba(255,255,255,.25)}
+.rh-cotm-body{flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:2px}
+.rh-cotm-body small{font-size:11.5px;letter-spacing:.16em;font-weight:600;color:#f7dfa0}
+.rh-cotm-name{font-family:"Barlow Condensed",Arial,sans-serif;font-size:34px;font-weight:700;line-height:1.05;text-transform:uppercase}
+.rh-cotm-meta{font-size:14px;opacity:.9}
+.rh-rot{border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:12px 14px;margin-bottom:14px;background:rgba(255,255,255,.03)}
+.rh-rot-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.rh-rot-h h4{margin:0;font-family:"Barlow Condensed",Arial,sans-serif;font-size:19px;font-weight:700}
+.rh-slots{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px}
+.rh-slot{border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:8px 12px;background:rgba(255,255,255,.03)}
+.rh-slot-h{display:flex;justify-content:space-between;align-items:center;gap:8px;padding-bottom:4px;border-bottom:2px solid #d6b25a;margin-bottom:2px;font-size:14px}
+.rh-slot-h b{font-family:"Barlow Condensed",Arial,sans-serif;font-size:17px;color:#ff8f86}
+.rh-rrow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.08);flex-wrap:wrap}
+.rh-rrow:last-child{border-bottom:0}
+.rh-rrow>span:first-child{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rh-rticks{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+.rh-rtick{border:1px solid rgba(255,255,255,.25);background:transparent;color:inherit;border-radius:999px;padding:3px 10px 3px 6px;font-size:12.5px;display:inline-flex;align-items:center;gap:5px;cursor:pointer}
+.rh-box{width:15px;height:15px;border-radius:4px;border:1.5px solid #bbb;display:grid;place-items:center;font-size:10px;line-height:1}
+.rh-rtick[aria-pressed="true"]{background:rgba(95,203,144,.18);border-color:#5fcb90;color:#5fcb90;font-weight:600}
+.rh-rtick[aria-pressed="true"] .rh-box{background:#5fcb90;border-color:#5fcb90;color:#111}
+.rh-others{margin-top:10px}
+.rh-others summary{cursor:pointer;font-weight:600;font-size:14px;padding:4px 0}
+
 /* B-Active brand theme: black throughout — page background, card
    surfaces, everything — with white/off-white for text and brand red as
    the one accent color (buttons, active states, links). The logo's gold

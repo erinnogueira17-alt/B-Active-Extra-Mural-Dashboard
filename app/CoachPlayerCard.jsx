@@ -82,7 +82,7 @@ export default function CoachPlayerCard({
       <div className="pc-spin">
         <div className="pc-face pc-front">
           <div className="pc-in" style={{ backgroundImage: `${WAVES}, ${FRONT_BG}` }}>
-            {isTop && <div className="pc-tag">TOP SCORE</div>}
+            {isTop && <div className="pc-tag">LEADING</div>}
             <div className="pc-ovr">
               <b>{Math.round(total)}</b>
               <span>OVR</span>

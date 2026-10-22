@@ -788,6 +788,7 @@ export default function RegisterHubBoard({ data, coaches: rosterCoaches }) {
       render: () => (
         <ScoreSnapshot
           coaches={trackerCoaches}
+          huddles={huddles}
           concerns={concerns}
           dailyChecks={dailyChecks}
           rotationChecks={rotationChecks}

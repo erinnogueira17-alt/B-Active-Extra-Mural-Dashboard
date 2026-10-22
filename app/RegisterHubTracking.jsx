@@ -3,16 +3,24 @@
 import { useState } from "react";
 import CoachPlayerCard from "./CoachPlayerCard.jsx";
 import {
+  ROTATION_ANCHOR,
   addDaysKey,
   dayKeyOf,
+  dayLabel,
   isConcernOverdue,
   parseDateKey,
+  rotationWeeksInMonth,
   strikeDueConcerns,
   todayDateKey,
   weekStartKey,
 } from "../lib/registerHub.js";
 import { canonicalizeCoachName, currentMonthKey, formatPeriodLabel } from "../lib/scorecard.js";
-import { computeCoachScorecard } from "../lib/registerHubScoring.js";
+import {
+  MIN_CHECKED_LESSONS,
+  computeCoachScorecard,
+  leadingCoach,
+  sortByScore,
+} from "../lib/registerHubScoring.js";
 import {
   buildDailySnapshot,
   buildWeeklyReport,
@@ -729,83 +737,191 @@ export function WeeklyReport({ schools, dailyChecks, concerns }) {
   );
 }
 
-function RotationWeekRow({ weekKey, coaches, rows, onToggle, onEvidenceUploaded }) {
+const ROTATION_DAY_ORDER = ["monday", "tuesday", "wednesday", "thursday", "friday"];
+
+// "5 Oct", read as a date-only key so the day never shifts with the viewer's timezone.
+const shortDay = (dateKey) =>
+  parseDateKey(dateKey).toLocaleDateString("en-ZA", { day: "numeric", month: "short", timeZone: "UTC" });
+
+// Coach of the Month banner, gold, showing the coach leading this month. It
+// updates as scores change; a coach only leads once eligible.
+function CoachOfMonthBanner({ scorecards }) {
+  if (scorecards.length === 0) return null;
+  const leader = leadingCoach(scorecards);
+  const shown = leader || sortByScore(scorecards)[0];
+  const registerPct = Math.round((shown.registerScore / 60) * 100);
+  const rotationPct = Math.round((shown.rotationScore / 20) * 100);
+  const photoPct = Math.round((shown.photoScore / 20) * 100);
+  const points = Math.round(shown.total);
   return (
-    <div className="card" style={{ marginBottom: "0.75rem" }}>
-      <h4 className="section-title" style={{ fontSize: "0.95rem", marginBottom: "0.5rem" }}>
-        Week of {weekKey}
-      </h4>
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Coach</th>
-              <th>Completed (8)</th>
-              <th>On time (6)</th>
-              <th>Attended huddle (6)</th>
-              <th>Evidence</th>
-            </tr>
-          </thead>
-          <tbody>
-            {coaches.map((coach) => {
-              const row = rows.find((r) => r.coach === coach) || {
-                coach,
-                completed: false,
-                onTime: false,
-                attendedHuddle: false,
-                evidenceFiles: [],
-              };
-              return (
-                <tr key={coach}>
-                  <td>{coach}</td>
-                  {["completed", "onTime", "attendedHuddle"].map((field) => (
-                    <td key={field}>
-                      <input
-                        type="checkbox"
-                        checked={!!row[field]}
-                        onChange={(e) => onToggle(weekKey, coach, field, e.target.checked, row)}
-                      />
-                    </td>
-                  ))}
-                  <td>
-                    {row.id ? (
-                      <EvidenceUpload
-                        targetType="rotation"
-                        targetId={row.id}
-                        evidenceFiles={row.evidenceFiles}
-                        onUploaded={onEvidenceUploaded}
-                      />
-                    ) : (
-                      <span className="kpi-sub">Tick a box first</span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+    <section className="rh-cotm">
+      <div className="rh-cotm-badge" aria-hidden="true">
+        #1
       </div>
-    </div>
+      <div className="rh-cotm-body">
+        <small>{leader ? "LEADING FOR COACH OF THE MONTH" : "TOP SCORE SO FAR · NOT YET ELIGIBLE"}</small>
+        <div className="rh-cotm-name">{shown.coach}</div>
+        <div className="rh-cotm-meta">
+          {leader
+            ? `${points} points · register ${registerPct}% · rotation ${rotationPct}% · photo of the day ${photoPct}%`
+            : `Needs ${MIN_CHECKED_LESSONS} checked lessons and no strikes to qualify · ${points} points`}
+        </div>
+      </div>
+    </section>
   );
 }
 
-export function ScoreSnapshot({ coaches, concerns, dailyChecks, rotationChecks, onRotationUpserted, coachPhotos = {}, onCoachPhotoSaved }) {
+// One rotation week: every huddle on the schedule with each coach's three
+// ticks, a Tick all button per huddle, and any coach not on a huddle below.
+function RotationWeek({ weekKey, huddles, coaches, rows, onTick, onTickAll, onEvidenceUploaded }) {
+  const rowFor = (coach) =>
+    rows.find((r) => canonicalizeCoachName(r.coach) === coach) || {
+      coach,
+      completed: false,
+      onTime: false,
+      attendedHuddle: false,
+      evidenceFiles: [],
+    };
+
+  const slots = huddles
+    .filter((h) => ROTATION_DAY_ORDER.includes(h.day))
+    .map((h) => ({ ...h, date: addDaysKey(weekKey, ROTATION_DAY_ORDER.indexOf(h.day)) }))
+    .sort(
+      (a, b) =>
+        ROTATION_DAY_ORDER.indexOf(a.day) - ROTATION_DAY_ORDER.indexOf(b.day) || a.time.localeCompare(b.time)
+    );
+  const huddleCoaches = [...new Set(slots.flatMap((s) => s.coaches))];
+  const others = coaches.filter((c) => !huddleCoaches.includes(c));
+  const fullyComplete = huddleCoaches.filter((c) => {
+    const row = rowFor(c);
+    return row.completed && row.onTime && row.attendedHuddle;
+  }).length;
+
+  const today = todayDateKey();
+  const weekEnd = addDaysKey(weekKey, 4);
+  const status = weekKey > today ? "upcoming" : weekEnd < today ? "week over" : "this week";
+
+  const coachRow = (coach) => {
+    const row = rowFor(coach);
+    const tick = (field, label) => (
+      <button
+        type="button"
+        className="rh-rtick"
+        aria-pressed={!!row[field]}
+        onClick={() => onTick(weekKey, coach, field, !row[field], row)}
+      >
+        <span className="rh-box">{row[field] ? "✓" : ""}</span>
+        {label}
+      </button>
+    );
+    return (
+      <div key={coach} className="rh-rrow">
+        <span>{coach}</span>
+        <span className="rh-rticks">
+          {tick("completed", "Completed")}
+          {tick("onTime", "On time")}
+          {tick("attendedHuddle", "Huddle")}
+        </span>
+      </div>
+    );
+  };
+
+  const evidenceCoaches = [...huddleCoaches, ...others].filter((c) => rowFor(c).id);
+
+  return (
+    <section className="rh-rot">
+      <div className="rh-rot-h">
+        <h4>
+          Rotation week · {shortDay(weekKey)} – {shortDay(weekEnd)}
+        </h4>
+        <span className="kpi-sub">
+          {fullyComplete} of {huddleCoaches.length} fully complete · {status}
+        </span>
+      </div>
+      {slots.length === 0 ? (
+        <p className="kpi-sub">Add the huddles in Setup to see the rotation slots.</p>
+      ) : (
+        <div className="rh-slots">
+          {slots.map((slot) => (
+            <div key={`${slot.day}-${slot.time}-${slot.coaches.join("|")}`} className="rh-slot">
+              <div className="rh-slot-h">
+                <span>
+                  <b>
+                    {dayLabel(slot.day)} {shortDay(slot.date)}
+                  </b>{" "}
+                  · {slot.time} huddle
+                </span>
+                <button className="back-link" type="button" onClick={() => onTickAll(weekKey, slot.coaches)}>
+                  Tick all
+                </button>
+              </div>
+              {slot.coaches.map(coachRow)}
+            </div>
+          ))}
+        </div>
+      )}
+      {others.length > 0 && (
+        <details className="rh-others">
+          <summary>Other coaches ({others.length})</summary>
+          {others.map(coachRow)}
+        </details>
+      )}
+      {evidenceCoaches.length > 0 && (
+        <details className="rh-others">
+          <summary>Evidence for this week</summary>
+          {evidenceCoaches.map((coach) => {
+            const row = rowFor(coach);
+            return (
+              <div key={coach} className="rh-rrow">
+                <span>{coach}</span>
+                <EvidenceUpload
+                  targetType="rotation"
+                  targetId={row.id}
+                  evidenceFiles={row.evidenceFiles}
+                  onUploaded={onEvidenceUploaded}
+                />
+              </div>
+            );
+          })}
+        </details>
+      )}
+    </section>
+  );
+}
+
+export function ScoreSnapshot({
+  coaches,
+  huddles = [],
+  concerns,
+  dailyChecks,
+  rotationChecks,
+  onRotationUpserted,
+  coachPhotos = {},
+  onCoachPhotoSaved,
+}) {
   const [monthKey, setMonthKey] = useState(() => currentMonthKey());
   const [newWeek, setNewWeek] = useState("");
 
   const monthConcernCount = (coach) =>
     concerns.filter((c) => canonicalizeCoachName(c.coach || "") === coach && c.date.startsWith(monthKey)).length;
+
+  // Scheduled rotation weeks plus any week already ticked, so nothing is hidden.
   const trackedWeekKeys = [
     ...new Set(rotationChecks.filter((r) => r.weekKey.startsWith(monthKey)).map((r) => r.weekKey)),
-  ].sort();
+  ];
+  const weekKeys = [...new Set([...rotationWeeksInMonth(monthKey), ...trackedWeekKeys])].sort();
 
-  const scorecards = coaches.map((coach) => ({
-    coach,
-    ...computeCoachScorecard(coach, { dailyChecks, concerns, rotationChecks, monthKey }),
-  }));
-  const topTotal = scorecards.length ? Math.max(...scorecards.map((s) => s.total)) : 0;
+  // Highest score first, so the card rank and the leader banner agree.
+  const scorecards = sortByScore(
+    coaches.map((coach) => ({
+      coach,
+      ...computeCoachScorecard(coach, { dailyChecks, concerns, rotationChecks, monthKey }),
+    }))
+  );
+  const leader = leadingCoach(scorecards);
 
-  async function handleRotationToggle(weekKey, coach, field, checked, row) {
+  // Saves one coach's three ticks for a rotation week.
+  async function saveRotation(weekKey, coach, values, row) {
     const res = await fetch("/api/register-hub/rotation", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -813,13 +929,26 @@ export function ScoreSnapshot({ coaches, concerns, dailyChecks, rotationChecks, 
         id: row.id || undefined,
         weekKey,
         coach,
-        completed: field === "completed" ? checked : !!row.completed,
-        onTime: field === "onTime" ? checked : !!row.onTime,
-        attendedHuddle: field === "attendedHuddle" ? checked : !!row.attendedHuddle,
+        completed: !!values.completed,
+        onTime: !!values.onTime,
+        attendedHuddle: !!values.attendedHuddle,
       }),
     });
     const body = await res.json().catch(() => ({ ok: false }));
     if (body.ok) onRotationUpserted(body.rotationCheck);
+  }
+
+  function handleRotationToggle(weekKey, coach, field, checked, row) {
+    return saveRotation(weekKey, coach, { ...row, [field]: checked }, row);
+  }
+
+  // Ticks every coach on a huddle as completed, on time and at the huddle. The
+  // saves run one after another, because each one rewrites the shared document.
+  async function handleTickAll(weekKey, huddleCoaches) {
+    for (const coach of huddleCoaches) {
+      const row = rotationChecks.find((r) => r.weekKey === weekKey && canonicalizeCoachName(r.coach) === coach) || {};
+      await saveRotation(weekKey, coach, { completed: true, onTime: true, attendedHuddle: true }, row);
+    }
   }
 
   function handleAddWeek() {
@@ -866,6 +995,7 @@ export function ScoreSnapshot({ coaches, concerns, dailyChecks, rotationChecks, 
         submitted on every checked lesson. The photo score is a provisional proxy until the photo-of-the-day winner
         picker is built.
       </p>
+      <CoachOfMonthBanner scorecards={scorecards} />
       <button className="back-link" type="button" onClick={copySnapshot} style={{ marginBottom: "1rem" }}>
         Copy scorecard as text
       </button>
@@ -889,7 +1019,7 @@ export function ScoreSnapshot({ coaches, concerns, dailyChecks, rotationChecks, 
                   photoUrl={coachPhotos[s.coach] || ""}
                   compliant={s.compliant.overall}
                   strikeCount={s.strikeCount}
-                  isTop={s.total > 0 && s.total === topTotal}
+                  isTop={leader?.coach === s.coach}
                   spinDelay={-Math.round((((i + 1) * 2.7) % 12) * 10) / 10}
                   onPhotoSaved={onCoachPhotoSaved}
                 />
@@ -904,24 +1034,30 @@ export function ScoreSnapshot({ coaches, concerns, dailyChecks, rotationChecks, 
       )}
 
       <h3 className="section-title" style={{ marginTop: "2rem" }}>
-        Rotation tracking
+        Rotation &amp; huddles
       </h3>
+      <p className="section-subtitle">
+        Rotation is every second week from {shortDay(ROTATION_ANCHOR)}, with the huddles from Setup. Tick each coach as
+        the week goes. Once a week has any tick, boxes left unticked count as not done.
+      </p>
       <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem", alignItems: "center", flexWrap: "wrap" }}>
         <input className="date-input" type="date" value={newWeek} onChange={(e) => setNewWeek(e.target.value)} />
         <button className="back-link" type="button" onClick={handleAddWeek}>
-          + Track this week
+          + Track an extra week
         </button>
       </div>
-      {trackedWeekKeys.length === 0 ? (
-        <div className="empty-state">No rotation weeks tracked this month yet.</div>
+      {weekKeys.length === 0 ? (
+        <div className="empty-state">No rotation week falls in this month.</div>
       ) : (
-        trackedWeekKeys.map((weekKey) => (
-          <RotationWeekRow
+        weekKeys.map((weekKey) => (
+          <RotationWeek
             key={weekKey}
             weekKey={weekKey}
+            huddles={huddles}
             coaches={coaches}
             rows={rotationChecks.filter((r) => r.weekKey === weekKey)}
-            onToggle={handleRotationToggle}
+            onTick={handleRotationToggle}
+            onTickAll={handleTickAll}
             onEvidenceUploaded={onRotationUpserted}
           />
         ))
