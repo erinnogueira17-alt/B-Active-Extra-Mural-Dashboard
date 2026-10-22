@@ -1,0 +1,6 @@
+[
+  { "day": "thursday", "time": "12:00", "coaches": ["Samu", "Curtis", "Breyton", "Katheerah"] },
+  { "day": "thursday", "time": "12:30", "coaches": ["Lucky", "Azzy"] },
+  { "day": "friday", "time": "12:00", "coaches": ["Romario", "Justin", "Tshepiso"] },
+  { "day": "friday", "time": "15:00", "coaches": ["Jerome", "Naeel", "Micky", "Jean"] }
+]

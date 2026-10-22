@@ -1037,8 +1037,8 @@ export function ScoreSnapshot({
         Rotation &amp; huddles
       </h3>
       <p className="section-subtitle">
-        Rotation is every second week from {shortDay(ROTATION_ANCHOR)}, with the huddles from Setup. Tick each coach as
-        the week goes. Once a week has any tick, boxes left unticked count as not done.
+        Rotation is every second week, with huddles on Thursday and Friday. Tick each coach as the week goes. Once you
+        start ticking a week, any box left unticked counts as not done.
       </p>
       <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem", alignItems: "center", flexWrap: "wrap" }}>
         <input className="date-input" type="date" value={newWeek} onChange={(e) => setNewWeek(e.target.value)} />
