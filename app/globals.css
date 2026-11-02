@@ -821,3 +821,223 @@ tbody tr:hover {
   border-left: 4px solid var(--gold);
   border-radius: 14px;
 }
+
+/* Curriculum board */
+.cur-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
+  gap: var(--card-gap);
+  align-items: start;
+}
+@media (max-width: 760px) {
+  .cur-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.cur-session {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.7rem 0.9rem;
+  margin-bottom: 0.5rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: inherit;
+  cursor: pointer;
+}
+.cur-session:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+.cur-session.is-selected {
+  border-color: var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.cur-session:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.cur-session small {
+  display: block;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+}
+.cur-block {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin: 1rem 0 0.4rem;
+}
+.cur-badge {
+  margin-left: 0.5rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  border-radius: 999px;
+  padding: 0.05rem 0.45rem;
+}
+.cur-muted {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+.cur-heading {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+.cur-section {
+  border-top: 1px solid var(--border);
+  padding: 0.9rem 0;
+}
+.cur-activities {
+  margin: 0;
+  padding-left: 1.3rem;
+  display: grid;
+  gap: 0.4rem;
+  line-height: 1.5;
+}
+.cur-sport {
+  display: flex;
+  gap: 1.25rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+.cur-sport .section-title {
+  margin-bottom: 0.4rem;
+}
+.cur-setup {
+  width: 170px;
+  height: auto;
+  border-radius: 10px;
+  background: #fff;
+}
+.cur-skills {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--card-gap);
+}
+.cur-skill {
+  margin: 0;
+  padding: 0.75rem;
+  text-align: center;
+}
+.cur-skill img {
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+  background: #fff;
+}
+.cur-skill figcaption {
+  font-size: 0.85rem;
+  line-height: 1.35;
+  margin-top: 0.4rem;
+}
+.cur-lesson {
+  margin-bottom: 0.75rem;
+}
+.cur-lesson summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.cur-lesson summary span {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+.cur-lesson[open] summary {
+  margin-bottom: 0.9rem;
+}
+.cur-pics {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.cur-pics img {
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+  background: #fff;
+}
+.cur-header {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+.cur-picto {
+  width: 72px;
+  height: 72px;
+  flex: none;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 12px;
+  padding: 6px;
+}
+.cur-formation {
+  display: grid;
+  grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: center;
+  margin: 1rem 0;
+}
+@media (max-width: 560px) {
+  .cur-formation {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.cur-equipment {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0.4rem 1rem;
+}
+.cur-equipment label {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: 0.92rem;
+}
+.cur-notes {
+  width: 100%;
+  min-height: 90px;
+  padding: 0.6rem;
+  font: inherit;
+}
+.cur-actions {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+}
+.cur-guide-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--card-gap);
+}
+.cur-collapse {
+  border-top: 1px solid var(--border);
+  padding: 0.7rem 0;
+}
+.cur-collapse summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.cur-collapse .cur-activities {
+  margin-top: 0.6rem;
+}
+.cur-filters {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+.cur-filters .tab-strip {
+  margin-bottom: 0;
+}
+.cur-plot {
+  background: #eef6ea;
+  border-radius: 12px;
+  padding: 0.5rem;
+}
