@@ -5,11 +5,10 @@ import { SPORTS } from "../../lib/curriculumLibrary.js";
 import { CURRICULUM_AGES } from "../../lib/curriculumAges.js";
 import { SKILLS_2D } from "../../lib/skillsIllustrated.js";
 import { WEEKLY_PLANS } from "../../lib/weeklyPlans/index.js";
-import { LESSON_PICTURES } from "../../lib/weeklyPlans/pictures.js";
 import { saveText } from "./shared.js";
 
-// Pick a sport and an age group. The skills children should demonstrate come first,
-// then the five lessons in order, each with its illustrations and activities.
+// Pick a sport and an age group. What the children should be able to do is written
+// out first, then the five lessons in order, then the same skills as illustrations.
 export default function LessonsTab() {
   const [sportKey, setSportKey] = useState("netball");
   const [ageKey, setAgeKey] = useState("4–6");
@@ -33,39 +32,39 @@ export default function LessonsTab() {
   return (
     <div>
       <div className="cur-filters">
-      <div className="tab-strip" role="tablist" aria-label="Sport">
-        {SPORTS.map((s) => {
-          const on = s.key === sport.key;
-          return (
+        <div className="tab-strip" role="tablist" aria-label="Sport">
+          {SPORTS.map((s) => {
+            const on = s.key === sport.key;
+            return (
+              <button
+                key={s.key}
+                type="button"
+                role="tab"
+                aria-selected={on}
+                className={`tab-pill${on ? " active" : ""}`}
+                style={on ? { background: s.colour, borderColor: s.colour } : undefined}
+                onClick={() => setSportKey(s.key)}
+              >
+                {s.name}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="tab-strip" role="tablist" aria-label="Age group">
+          {CURRICULUM_AGES.map((a) => (
             <button
-              key={s.key}
+              key={a.key}
               type="button"
               role="tab"
-              aria-selected={on}
-              className={`tab-pill${on ? " active" : ""}`}
-              style={on ? { background: s.colour, borderColor: s.colour } : undefined}
-              onClick={() => setSportKey(s.key)}
+              aria-selected={a.key === age.key}
+              className={`tab-pill${a.key === age.key ? " active" : ""}`}
+              onClick={() => setAgeKey(a.key)}
             >
-              {s.name}
+              {a.label}
             </button>
-          );
-        })}
-      </div>
-
-      <div className="tab-strip" role="tablist" aria-label="Age group">
-        {CURRICULUM_AGES.map((a) => (
-          <button
-            key={a.key}
-            type="button"
-            role="tab"
-            aria-selected={a.key === age.key}
-            className={`tab-pill${a.key === age.key ? " active" : ""}`}
-            onClick={() => setAgeKey(a.key)}
-          >
-            {a.label}
-          </button>
-        ))}
-      </div>
+          ))}
+        </div>
       </div>
       <p className="section-subtitle">{age.source}</p>
 
@@ -79,35 +78,27 @@ export default function LessonsTab() {
         </div>
       </div>
 
-      <h3 className="section-title">Skills to demonstrate</h3>
-      <div className="cur-skills">
-        {skills.map((s) => (
-          <figure key={s.name} className="card cur-skill">
-            <img src={s.img} alt={s.name} loading="lazy" />
-            <figcaption>{s.name}</figcaption>
-          </figure>
-        ))}
-      </div>
+      <section className="card cur-section-card">
+        <h3 className="section-title">I should be able to… (ages {age.key})</h3>
+        <ol className="cur-skill-list">
+          {skills.map((s) => (
+            <li key={s.name}>
+              <strong>{s.name}.</strong> {s.description}
+            </li>
+          ))}
+        </ol>
+      </section>
 
       <h3 className="section-title" style={{ marginTop: "1.5rem" }}>
         Five lessons
       </h3>
       {lessons.map((lesson) => {
-        const pictures = LESSON_PICTURES[`${sport.key}|${age.pictures}|${lesson.number}`] || [];
         const activities = lesson.plan.ages[age.plan] || [];
         return (
           <details key={lesson.number} className="card cur-lesson" open={lesson.number === 1}>
             <summary>
               Lesson {lesson.number} <span>· {lesson.plan.focus}</span>
             </summary>
-
-            {pictures.length ? (
-              <div className="cur-pics">
-                {pictures.map((src) => (
-                  <img key={src} src={src} alt={`${sport.name} illustration, lesson ${lesson.number}`} loading="lazy" />
-                ))}
-              </div>
-            ) : null}
 
             <h4 className="cur-heading">Activities</h4>
             <ol className="cur-activities">
@@ -133,6 +124,18 @@ export default function LessonsTab() {
           </details>
         );
       })}
+
+      <h3 className="section-title" style={{ marginTop: "1.5rem" }}>
+        Skills to demonstrate
+      </h3>
+      <div className="cur-skills">
+        {skills.map((s) => (
+          <figure key={s.name} className="card cur-skill">
+            <img src={s.img} alt={s.name} loading="lazy" />
+            <figcaption>{s.name}</figcaption>
+          </figure>
+        ))}
+      </div>
     </div>
   );
 }
