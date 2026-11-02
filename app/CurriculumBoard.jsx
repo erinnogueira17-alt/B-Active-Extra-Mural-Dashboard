@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { AGES, BLOCKS, EQUIP, LESSONS, PICTO, TERM, WAIT, WAIT_1_2 } from "../lib/curriculumData.js";
 import { AGE_COLOUR, AGE_GROUPS, COACH_TIPS, SPORTS, lessonsFor } from "../lib/curriculumLibrary.js";
+import { SKILLS_2D } from "../lib/skillsIllustrated.js";
 import LessonPlans from "./LessonPlans.jsx";
 
 const INK = "#1d1a17";
@@ -209,11 +210,14 @@ function LessonLibrary() {
         <>
           <div style={{ ...panel, marginBottom: 14, borderTop: "4px solid " + sport.colour }}>
             <h4 style={{ margin: "0 0 6px", fontSize: 20, textTransform: "uppercase" }}>I should be able to… (ages {age})</h4>
-            <ul style={{ margin: 0, paddingLeft: 20, columns: 2 }}>
-              {sport.abilities[age].map((x) => (
-                <li key={x} style={{ margin: "2px 0" }}>{x}</li>
+            <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))" }}>
+              {SKILLS_2D[sport.key][age].map((s) => (
+                <figure key={s.name} style={{ margin: 0, textAlign: "center" }}>
+                  <img src={s.img} alt={s.name} loading="lazy" style={{ width: "100%", height: "auto", borderRadius: 10, background: "#fff" }} />
+                  <figcaption style={{ fontSize: 13, marginTop: 4, lineHeight: 1.35 }}>{s.name}</figcaption>
+                </figure>
               ))}
-            </ul>
+            </div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
             {lessons.map((L) => {
