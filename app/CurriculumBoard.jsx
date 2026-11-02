@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { AGES, BLOCKS, EQUIP, LESSONS, PICTO, TERM, WAIT, WAIT_1_2 } from "../lib/curriculumData.js";
 import { AGE_COLOUR, AGE_GROUPS, COACH_TIPS, SPORTS, lessonsFor } from "../lib/curriculumLibrary.js";
-import WeeklyPlans from "./WeeklyPlans.jsx";
+import LessonPlans from "./LessonPlans.jsx";
 
 const INK = "#1d1a17";
 const CONE = { green: "#3fbf4a", blue: "#2b9bf0", red: "#e8302f", yellow: "#f5c400" };
@@ -127,7 +127,7 @@ function Formation({ form, label }) {
 
 const SUBTABS = [
   { key: "library", label: "Lesson library" },
-  { key: "weekly", label: "Weekly plans" },
+  { key: "weekly", label: "Lesson plans" },
   { key: "lessons", label: "Term 1 plan" },
   { key: "programmes", label: "Programmes and skills" },
   { key: "expectations", label: "Coach expectations" },
@@ -417,7 +417,7 @@ export default function CurriculumBoard() {
       </div>
 
       {section === "library" && <LessonLibrary />}
-      {section === "weekly" && <WeeklyPlans />}
+      {section === "weekly" && <LessonPlans />}
 
       {section === "lessons" && (
         <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 320px) minmax(0, 1fr)", gap: 18, alignItems: "start" }} className="curriculum-layout">
