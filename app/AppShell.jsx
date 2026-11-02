@@ -8,6 +8,7 @@ import CoachScorecardBoard from "./CoachScorecardBoard.jsx";
 import RegisterHubBoard from "./RegisterHubBoard.jsx";
 import LandingSummary from "./LandingSummary.jsx";
 import GlobalSearch from "./GlobalSearch.jsx";
+import CurriculumBoard from "./CurriculumBoard.jsx";
 
 const BOARDS = [
   {
@@ -34,6 +35,11 @@ const BOARDS = [
     key: "register-hub",
     label: "Register Hub",
     description: "Daily register checks, concerns, rotation and the compliance scorecard.",
+  },
+  {
+    key: "curriculum",
+    label: "Curriculum",
+    description: "Term 1 lesson plans for netball, rugby and soccer, with formations and checklists.",
   },
 ];
 
@@ -186,6 +192,7 @@ export default function AppShell({ growth, currentState, currentStateHistory, co
         <CoachScorecardBoard data={coachScorecard.data} coaches={coaches} />
       )}
       {board === "register-hub" && <RegisterHubBoard data={registerHub.data} coaches={coaches} />}
+      {board === "curriculum" && <CurriculumBoard />}
 
       <footer className="sync-footer">
         <span>
