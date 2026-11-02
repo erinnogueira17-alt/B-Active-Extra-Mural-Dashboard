@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { GET as syncGrowth } from "../sync-growth/route.js";
 import { GET as syncCurrentState } from "../sync-current-state/route.js";
+import { readSyncResponse } from "../../../lib/syncResponse.js";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ async function callSyncRoute(handler, baseUrl, path, secret) {
     cache: "no-store",
   });
   const res = await handler(req);
-  const body = await res.json().catch(() => ({ error: `Sync returned a non-JSON response (HTTP ${res.status})` }));
+  const body = await readSyncResponse(res);
   return { ok: res.ok && body.ok === true, status: res.status, ...body };
 }
 
