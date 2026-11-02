@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { AGES, BLOCKS, EQUIP, LESSONS, PICTO, TERM, WAIT, WAIT_1_2 } from "../lib/curriculumData.js";
+import { AGE_COLOUR, AGE_GROUPS, COACH_TIPS, SPORTS, lessonsFor } from "../lib/curriculumLibrary.js";
 
 const INK = "#1d1a17";
 const CONE = { green: "#3fbf4a", blue: "#2b9bf0", red: "#e8302f", yellow: "#f5c400" };
@@ -124,19 +125,228 @@ function Formation({ form, label }) {
 }
 
 const SUBTABS = [
-  { key: "lessons", label: "Lesson plans" },
+  { key: "library", label: "Lesson library" },
+  { key: "lessons", label: "Term 1 plan" },
   { key: "programmes", label: "Programmes and skills" },
   { key: "expectations", label: "Coach expectations" },
 ];
 
 const panel = { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 14, padding: 18, minWidth: 0 };
 const chipBase = { border: "1px solid rgba(255,255,255,0.2)", background: "transparent", color: "inherit", padding: "5px 12px", borderRadius: 999, fontSize: 14, fontWeight: 600, cursor: "pointer" };
-const chipOn = { ...chipBase, background: "#f4eee8", color: "#151210", borderColor: "#f4eee8" };
+const chipOn = { ...chipBase, background: "#f4eee8", color: "#151210", border: "1px solid #f4eee8" };
+
+// Lesson library: five sports, three age groups, five lessons each.
+function LessonLibrary() {
+  const [sportKey, setSportKey] = useState("netball");
+  const [age, setAge] = useState("4–6");
+  const [open, setOpen] = useState(null);
+  const sport = SPORTS.find((s) => s.key === sportKey) || SPORTS[0];
+  const lessons = lessonsFor(sport, age);
+  const lesson = open ? lessons[open - 1] : null;
+
+  function downloadLesson(L) {
+    const lines = [sport.name + " · " + L.title + " · focus: " + L.focus, "Ages " + age + " years", ""];
+    for (const x of L.flow) {
+      lines.push(x.name + " (" + x.minutes + " min)" + (x.focus ? " · FOCUS" : ""));
+      if (x.cue) lines.push("  Cue: " + x.cue);
+      lines.push("  " + x.text, "");
+    }
+    lines.push("Equipment: " + sport.equipment, "Coach tips: " + COACH_TIPS);
+    saveText("Curriculum-" + sport.name + "-" + age + "-" + L.title.replace(/\s+/g, "-") + ".txt", lines.join("\n"));
+  }
+
+  return (
+    <div>
+      <div role="group" aria-label="Sport" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+        {SPORTS.map((s) => (
+          <button
+            key={s.key}
+            type="button"
+            aria-pressed={s.key === sportKey}
+            onClick={() => {
+              setSportKey(s.key);
+              setOpen(null);
+            }}
+            style={{
+              ...chipBase,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              ...(s.key === sportKey ? { background: s.colour, border: "1px solid " + s.colour, color: "#fff" } : {}),
+            }}
+          >
+            <img src={s.picto} alt="" style={{ width: 28, height: 28, objectFit: "contain", background: "#fff", borderRadius: 6 }} />
+            {s.name}
+          </button>
+        ))}
+      </div>
+
+      <div role="group" aria-label="Age group" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+        {AGE_GROUPS.map((a) => (
+          <button
+            key={a}
+            type="button"
+            aria-pressed={a === age}
+            onClick={() => {
+              setAge(a);
+              setOpen(null);
+            }}
+            style={{
+              ...chipBase,
+              border: "1px solid " + AGE_COLOUR[a],
+              background: a === age ? AGE_COLOUR[a] : "transparent",
+              color: a === age ? (a === "2–4" ? "#151210" : "#ffffff") : "inherit",
+            }}
+          >
+            {a} years
+          </button>
+        ))}
+      </div>
+
+      {!lesson && (
+        <>
+          <div style={{ ...panel, marginBottom: 14, borderTop: "4px solid " + sport.colour }}>
+            <h4 style={{ margin: "0 0 6px", fontSize: 20, textTransform: "uppercase" }}>I should be able to… (ages {age})</h4>
+            <ul style={{ margin: 0, paddingLeft: 20, columns: 2 }}>
+              {sport.abilities[age].map((x) => (
+                <li key={x} style={{ margin: "2px 0" }}>{x}</li>
+              ))}
+            </ul>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
+            {lessons.map((L) => {
+              const focus = sport.blocks[L.number - 1];
+              return (
+                <button
+                  key={L.number}
+                  type="button"
+                  onClick={() => setOpen(L.number)}
+                  style={{ ...panel, textAlign: "left", cursor: "pointer", color: "inherit", padding: 12 }}
+                >
+                  <img src={focus.img} alt={focus.name + " illustration"} style={{ width: "100%", height: 120, objectFit: "contain", background: "#fbf8f1", borderRadius: 10 }} />
+                  <div style={{ marginTop: 8, fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: sport.colour }}>
+                    Lesson {L.number} · 30 min
+                  </div>
+                  <div style={{ fontWeight: 700, fontSize: 17 }}>{focus.name}</div>
+                  <div style={{ fontSize: 13, opacity: 0.75, fontStyle: "italic" }}>{focus.cue}</div>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {lesson && (
+        <article style={panel}>
+          <button type="button" className="back-link" onClick={() => setOpen(null)} style={{ marginBottom: 10 }}>
+            ← All {sport.name.toLowerCase()} lessons, ages {age}
+          </button>
+          <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
+            <img src={sport.picto} alt={sport.name + " pictogram"} style={{ width: 84, height: 84, objectFit: "contain", background: "#fff", borderRadius: 14, padding: 6 }} />
+            <div>
+              <div style={{ fontSize: 13, letterSpacing: "0.08em", textTransform: "uppercase", opacity: 0.8 }}>
+                {sport.name} · ages {age} · {lesson.total} minutes
+              </div>
+              <h3 style={{ margin: "2px 0 0", fontSize: 30, textTransform: "uppercase" }}>
+                {lesson.title}: {lesson.focus}
+              </h3>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", height: 34, borderRadius: 8, overflow: "hidden", margin: "14px 0 16px", border: "1px solid rgba(255,255,255,0.12)" }} aria-label="Lesson timeline">
+            {lesson.flow.map((x, i) => (
+              <div
+                key={i}
+                title={x.name + " · " + x.minutes + " min"}
+                style={{
+                  flex: x.minutes,
+                  background: x.focus ? sport.colour : x.name === "Warm-up" || x.name === "Wrap-up" ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.28)",
+                  color: "#fff",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  overflow: "hidden",
+                  whiteSpace: "nowrap",
+                  padding: "0 4px",
+                }}
+              >
+                {x.minutes >= 3 ? x.minutes + "′" : ""}
+              </div>
+            ))}
+          </div>
+
+          {lesson.flow.map((x, i) => (
+            <div
+              key={i}
+              style={{
+                display: "grid",
+                gridTemplateColumns: x.img ? "minmax(0, 170px) minmax(0, 1fr)" : "minmax(0, 1fr)",
+                gap: 14,
+                alignItems: "center",
+                borderTop: "1px solid rgba(255,255,255,0.12)",
+                padding: "12px 0",
+                background: x.focus ? "rgba(255,255,255,0.04)" : "transparent",
+              }}
+            >
+              {x.img && (
+                <img src={x.img} alt={x.name + " illustration"} style={{ width: "100%", height: 110, objectFit: "contain", background: "#fbf8f1", borderRadius: 10 }} />
+              )}
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 17, textTransform: "uppercase" }}>
+                  {x.name} <span style={{ fontWeight: 600, fontSize: 13, opacity: 0.75 }}>· {x.minutes} min{x.focus ? " · focus" : ""}</span>
+                </div>
+                {x.cue ? <div style={{ fontStyle: "italic", fontSize: 14, color: sport.colour, margin: "2px 0 4px", filter: "brightness(1.4)" }}>“{x.cue}”</div> : null}
+                <div>{x.gameName ? <b>{x.gameName}: </b> : null}{x.text}</div>
+              </div>
+            </div>
+          ))}
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginTop: 8 }}>
+            <div style={{ ...panel, padding: 12 }}>
+              <h4 style={{ margin: "0 0 6px", fontSize: 18, textTransform: "uppercase" }}>Set-up</h4>
+              <img src={sport.setup} alt={sport.name + " set-up diagram"} style={{ width: "100%", height: "auto", borderRadius: 10, background: "#fbf8f1" }} />
+              <p style={{ fontSize: 13, margin: "6px 0 0", opacity: 0.8 }}>One station per child. Spread out, set distances for the age group, and the coach stands in the middle.</p>
+              <p style={{ fontSize: 13, margin: "6px 0 0" }}><b>Equipment:</b> {sport.equipment}</p>
+            </div>
+            <div style={{ ...panel, padding: 12 }}>
+              <h4 style={{ margin: "0 0 6px", fontSize: 18, textTransform: "uppercase" }}>Easier</h4>
+              <ul style={{ margin: 0, paddingLeft: 20 }}>
+                {sport.regressions.map((x) => (
+                  <li key={x}>{x}</li>
+                ))}
+              </ul>
+              <h4 style={{ margin: "12px 0 6px", fontSize: 18, textTransform: "uppercase" }}>Harder</h4>
+              <ul style={{ margin: 0, paddingLeft: 20 }}>
+                {sport.progressions.map((x) => (
+                  <li key={x}>{x}</li>
+                ))}
+              </ul>
+              <p style={{ fontSize: 13, margin: "12px 0 0", opacity: 0.8 }}>{COACH_TIPS}</p>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14, alignItems: "center" }}>
+            <button
+              type="button"
+              style={{ ...chipBase, background: "#e8302f", border: "1px solid #e8302f", color: "#fff" }}
+              onClick={() => downloadLesson(lesson)}
+            >
+              Download this lesson
+            </button>
+            <span style={{ fontSize: 13, opacity: 0.7 }}>Timings are rebalanced to 30 minutes, with the focus block longer.</span>
+          </div>
+        </article>
+      )}
+    </div>
+  );
+}
 
 export default function CurriculumBoard() {
-  const [section, setSection] = useState("lessons");
+  const [section, setSection] = useState("library");
   const [selected, setSelected] = useState(null);
-  const [age, setAge] = useState("4-5");
+  const [age, setAge] = useState("4–6");
   const [saved, setSaved] = useState(null);
   const [status, setStatus] = useState("");
 
@@ -146,7 +356,7 @@ export default function CurriculumBoard() {
 
   function openLesson(id) {
     setSelected(id);
-    setAge("4-5");
+    setAge("4–6");
     setStatus("");
     setSaved({ key: "curriculum-" + id, value: readSaved("curriculum-" + id) });
   }
@@ -185,8 +395,8 @@ export default function CurriculumBoard() {
     <div>
       <h3 className="section-title">Curriculum</h3>
       <p className="section-subtitle">
-        Term 1 lesson plans for netball, rugby and soccer, with age groups, formations and checklists. Lessons marked Draft
-        have not yet been checked by the coach lead.
+        Five lessons per age group for netball, rugby, soccer, hockey and tennis, for ages 2–4, 4–6 and 7+. Lessons marked
+        Draft have not yet been checked by the coach lead.
       </p>
 
       <div role="tablist" aria-label="Curriculum sections" style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "12px 0 18px" }}>
@@ -203,6 +413,8 @@ export default function CurriculumBoard() {
           </button>
         ))}
       </div>
+
+      {section === "library" && <LessonLibrary />}
 
       {section === "lessons" && (
         <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 320px) minmax(0, 1fr)", gap: 18, alignItems: "start" }} className="curriculum-layout">
@@ -339,7 +551,7 @@ export default function CurriculumBoard() {
                 <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 12 }}>
                   <button
                     type="button"
-                    style={{ ...chipBase, background: "#e8302f", borderColor: "#e8302f", color: "#fff" }}
+                    style={{ ...chipBase, background: "#e8302f", border: "1px solid #e8302f", color: "#fff" }}
                     onClick={() => {
                       saveText("Curriculum-" + lesson.title.replace(/\s+/g, "-") + ".txt", lessonText(lesson));
                       setStatus("Lesson downloaded.");
