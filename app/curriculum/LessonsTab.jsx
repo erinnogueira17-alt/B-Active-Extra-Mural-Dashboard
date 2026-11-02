@@ -78,16 +78,6 @@ export default function LessonsTab() {
         </div>
       </div>
 
-      <section className="card cur-section-card">
-        <h3 className="section-title">I should be able to… (ages {age.key})</h3>
-        <ol className="cur-skill-list">
-          {skills.map((s) => (
-            <li key={s.name}>
-              <strong>{s.name}.</strong> {s.description}
-            </li>
-          ))}
-        </ol>
-      </section>
 
       <h3 className="section-title" style={{ marginTop: "1.5rem" }}>
         Five lessons
@@ -126,13 +116,17 @@ export default function LessonsTab() {
       })}
 
       <h3 className="section-title" style={{ marginTop: "1.5rem" }}>
-        Skills to demonstrate
+        What I should be able to do ({age.key})
       </h3>
+      <p className="section-subtitle">Each card shows a skill the child needs to demonstrate, with what it looks like.</p>
       <div className="cur-skills">
         {skills.map((s) => (
           <figure key={s.name} className="card cur-skill">
             <img src={s.img} alt={s.name} loading="lazy" />
-            <figcaption>{s.name}</figcaption>
+            <figcaption>
+              <strong>{s.name}</strong>
+              <span>{s.description}</span>
+            </figcaption>
           </figure>
         ))}
       </div>

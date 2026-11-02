@@ -1051,3 +1051,9 @@ tbody tr:hover {
   gap: 0.6rem;
   line-height: 1.5;
 }
+.cur-skill figcaption span {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
