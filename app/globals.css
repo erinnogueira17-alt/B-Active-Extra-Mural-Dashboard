@@ -1037,7 +1037,8 @@ tbody tr:hover {
   margin-bottom: 0;
 }
 .cur-plot {
-  background: #eef6ea;
+  background: #fef9e7;
+  border: 1px solid #efe3bf;
   border-radius: 12px;
   padding: 0.5rem;
 }

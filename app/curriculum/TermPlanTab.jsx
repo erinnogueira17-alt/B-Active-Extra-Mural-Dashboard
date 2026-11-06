@@ -4,8 +4,6 @@ import { useState } from "react";
 import { AGES, BLOCKS, EQUIP, LESSONS, PICTO, TERM, WAIT } from "../../lib/curriculumData.js";
 import { readSaved, writeSaved, saveText } from "./shared.js";
 
-const INK = "#1d1a17";
-const CONE = { green: "#3fbf4a", blue: "#2b9bf0", red: "#e8302f", yellow: "#f5c400" };
 
 function lessonText(L) {
   const lines = [L.title + (L.draft ? " (DRAFT, not yet checked)" : ""), L.sport + " · " + L.phase, "Formation: " + L.formText, ""];
@@ -40,20 +38,21 @@ function termText() {
   return out.join("\n");
 }
 
-function Cone({ x, y, c }) {
-  return <ellipse cx={x} cy={y} rx="7" ry="3.5" fill={c} stroke={INK} strokeWidth="0.5" />;
+// Formations are drawn with the Be Active player and cone illustrations, on the
+// same cream background as the templates. Positions are on a 320 × 230 grid.
+const KIDS = ["/curriculum/diagrams/kid-1.png", "/curriculum/diagrams/kid-2.png", "/curriculum/diagrams/kid-3.png", "/curriculum/diagrams/kid-4.png", "/curriculum/diagrams/kid-5.png"];
+const CONE_IMG = "/curriculum/diagrams/cone.png";
+const CONE_W = 26;
+const CONE_H = 26;
+const KID_W = 42;
+const KID_H = 46;
+
+function Cone({ x, y }) {
+  return <image href={CONE_IMG} x={x - CONE_W / 2} y={y - CONE_H / 2} width={CONE_W} height={CONE_H} preserveAspectRatio="xMidYMid meet" />;
 }
 
-function Player({ x, y }) {
-  return (
-    <g stroke={INK} fill={INK}>
-      <circle cx={x} cy={y - 10} r="3.5" stroke="none" />
-      <line x1={x} y1={y - 6} x2={x} y2={y + 4} strokeWidth="2" />
-      <line x1={x - 5} y1={y - 2} x2={x + 5} y2={y - 2} strokeWidth="1.8" />
-      <line x1={x} y1={y + 4} x2={x - 4} y2={y + 11} strokeWidth="1.8" />
-      <line x1={x} y1={y + 4} x2={x + 4} y2={y + 11} strokeWidth="1.8" />
-    </g>
-  );
+function Player({ x, y, i }) {
+  return <image href={KIDS[i % KIDS.length]} x={x - KID_W / 2} y={y - KID_H / 2} width={KID_W} height={KID_H} preserveAspectRatio="xMidYMid meet" />;
 }
 
 // Formation drawn to a common grid: cones, then players.
@@ -62,34 +61,29 @@ function Formation({ form, label }) {
   if (form === "circle") {
     for (let i = 0; i < 8; i++) {
       const a = (i * Math.PI) / 4;
-      items.push(<Cone key={"c" + i} x={160 + 95 * Math.cos(a)} y={115 + 80 * Math.sin(a)} c={CONE.green} />);
+      items.push(<Cone key={"c" + i} x={160 + 95 * Math.cos(a)} y={115 + 80 * Math.sin(a)} />);
     }
     for (let i = 0; i < 6; i++) {
       const a = (i * Math.PI) / 3 + 0.3;
-      items.push(<Player key={"p" + i} x={160 + 45 * Math.cos(a)} y={115 + 32 * Math.sin(a)} />);
+      items.push(<Player key={"p" + i} x={160 + 45 * Math.cos(a)} y={115 + 32 * Math.sin(a)} i={i} />);
     }
   } else if (form === "lines2") {
     for (let i = 0; i < 6; i++) {
-      items.push(<Cone key={"a" + i} x={40 + i * 48} y={50} c={CONE.green} />, <Cone key={"b" + i} x={40 + i * 48} y={180} c={CONE.blue} />);
+      items.push(<Cone key={"a" + i} x={40 + i * 48} y={50} />, <Cone key={"b" + i} x={40 + i * 48} y={180} />);
     }
-    for (let i = 0; i < 4; i++) items.push(<Player key={"p" + i} x={70 + i * 60} y={115} />);
+    for (let i = 0; i < 4; i++) items.push(<Player key={"p" + i} x={70 + i * 60} y={115} i={i} />);
   } else if (form === "lines3") {
     for (let i = 0; i < 6; i++) {
       items.push(
-        <Cone key={"a" + i} x={40 + i * 48} y={40} c={CONE.green} />,
-        <Cone key={"b" + i} x={40 + i * 48} y={115} c={CONE.red} />,
-        <Cone key={"c" + i} x={40 + i * 48} y={190} c={CONE.blue} />
+        <Cone key={"a" + i} x={40 + i * 48} y={40} />,
+        <Cone key={"b" + i} x={40 + i * 48} y={115} />,
+        <Cone key={"c" + i} x={40 + i * 48} y={190} />
       );
     }
-    for (let i = 0; i < 4; i++) items.push(<Player key={"p" + i} x={60 + i * 65} y={150} />);
+    for (let i = 0; i < 4; i++) items.push(<Player key={"p" + i} x={60 + i * 65} y={150} i={i} />);
   } else {
-    items.push(
-      <Cone key="q1" x={50} y={35} c={CONE.green} />,
-      <Cone key="q2" x={270} y={35} c={CONE.red} />,
-      <Cone key="q3" x={50} y={195} c={CONE.yellow} />,
-      <Cone key="q4" x={270} y={195} c={CONE.blue} />
-    );
-    for (let i = 0; i < 4; i++) items.push(<Player key={"p" + i} x={110 + i * 35} y={115} />);
+    items.push(<Cone key="q1" x={50} y={35} />, <Cone key="q2" x={270} y={35} />, <Cone key="q3" x={50} y={195} />, <Cone key="q4" x={270} y={195} />);
+    for (let i = 0; i < 4; i++) items.push(<Player key={"p" + i} x={110 + i * 35} y={115} i={i} />);
   }
   return (
     <svg viewBox="0 0 320 230" role="img" aria-label={"Formation diagram: " + label} style={{ width: "100%", height: "auto", display: "block" }}>
